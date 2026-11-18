@@ -22,20 +22,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.barghest.mesh.R
 import com.barghest.mesh.ui.theme.MeshMono
 import com.barghest.mesh.mdm.MDMSetting
 import com.barghest.mesh.mdm.MDMSettings
 import com.barghest.mesh.ui.util.itemsWithDividers
-import com.barghest.mesh.ui.viewModel.IpnViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MDMSettingsDebugView(
-    backToSettings: BackNavigation,
-    @Suppress("UNUSED_PARAMETER") model: IpnViewModel = viewModel()
-) {
+fun MDMSettingsDebugView(backToSettings: BackNavigation) {
   Scaffold(topBar = { Header(R.string.current_mdm_settings, onBack = backToSettings) }) {
       innerPadding ->
     LazyColumn(modifier = Modifier.padding(innerPadding)) {

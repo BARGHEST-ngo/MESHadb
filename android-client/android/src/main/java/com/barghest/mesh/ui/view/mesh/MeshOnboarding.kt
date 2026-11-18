@@ -77,7 +77,7 @@ private fun OnbBullet(text: String) {
 }
 
 @Composable
-fun MeshOnboarding(pendingLink: Boolean = false, onDone: () -> Unit) {
+fun MeshOnboarding(onDone: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     var page by remember { mutableIntStateOf(0) }
     val pages = 3
@@ -152,16 +152,6 @@ fun MeshOnboarding(pendingLink: Boolean = false, onDone: () -> Unit) {
                             ),
                     )
                 }
-            }
-            if (pendingLink && page == pages - 1) {
-                Text(
-                    stringResource(R.string.mesh_onb_pending_notice),
-                    color = cs.accent,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                )
             }
             MeshButton(
                 text = when (page) {

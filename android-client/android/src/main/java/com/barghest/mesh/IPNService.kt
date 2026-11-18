@@ -100,20 +100,16 @@ open class IPNService : VpnService() {
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
       when (intent?.action) {
         ACTION_STOP_VPN -> {
-          app.setWantRunning(false)
           close()
           START_NOT_STICKY
         }
         ACTION_RESTART_VPN -> {
-          app.setWantRunning(false) {
-            close()
-            app.startVPN()
-          }
+          // Sent when the split tunnelling list changes. A session cannot be restarted,
+          // because a PIN works once, so the new list applies the next time forwarding starts.
           START_NOT_STICKY
         }
         ACTION_START_VPN -> {
           scope.launch { showForegroundNotification() }
-          app.setWantRunning(true)
 
           if (!startMeshnet() && !MeshnetSession.isActive) {
             // Nothing to run: don't leave a "Connected" notification behind.
@@ -155,23 +151,15 @@ open class IPNService : VpnService() {
     super.onRevoke()
   }
 
-  private fun showForegroundNotification(
-      hideDisconnectAction: Boolean,
-      exitNodeName: String? = null
-  ) {
+  private fun showForegroundNotification() {
+    val hideDisconnectAction = MDMSettings.forceEnabled.flow.value.value
     try {
       startForeground(
           UninitializedApp.STATUS_NOTIFICATION_ID,
-          UninitializedApp.get().buildStatusNotification(true, hideDisconnectAction, exitNodeName))
+          UninitializedApp.get().buildStatusNotification(true, hideDisconnectAction))
     } catch (e: Exception) {
       TSLog.e(TAG, "Failed to start foreground service: $e")
     }
-  }
-
-  private fun showForegroundNotification() {
-    val hideDisconnectAction = MDMSettings.forceEnabled.flow.value.value
-    val exitNodeName = UninitializedApp.getExitNodeName(Notifier.prefs.value, Notifier.netmap.value)
-    showForegroundNotification(hideDisconnectAction, exitNodeName)
   }
 
   private fun configIntent(): PendingIntent {

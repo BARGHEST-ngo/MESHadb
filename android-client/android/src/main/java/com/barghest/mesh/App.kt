@@ -21,9 +21,6 @@ import android.content.IntentFilter
 import android.content.RestrictionsManager
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager
-import android.net.Uri
-import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -34,10 +31,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.barghest.mesh.mdm.MDMSettings
 import com.barghest.mesh.mdm.MDMSettingsChangedReceiver
-import com.barghest.mesh.ui.localapi.Client
 import com.barghest.mesh.ui.model.Ipn
-import com.barghest.mesh.ui.model.Netmap
-import com.barghest.mesh.ui.notifier.HealthNotifier
 import com.barghest.mesh.ui.notifier.Notifier
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -45,8 +39,6 @@ import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 import com.barghest.mesh.ui.viewModel.AppViewModel
 import com.barghest.mesh.ui.viewModel.AppViewModelFactory
-import com.barghest.mesh.util.FeatureFlags
-import com.barghest.mesh.util.ShareFileHelper
 import com.barghest.mesh.util.TSLog
 import java.io.IOException
 import java.security.GeneralSecurityException
@@ -56,16 +48,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class App : UninitializedApp(), ViewModelStoreOwner {
   val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
   companion object {
-    private const val FILE_CHANNEL_ID = "barghest-files"
-    // Key to store the SAF URI in EncryptedSharedPreferences.
-    private val PREF_KEY_SAF_URI = "saf_directory_uri"
+    // Channels from the Tailscale-based versions, removed on start.
+    private val LEGACY_CHANNEL_IDS = listOf("barghest-files", "barghest-health")
     private const val TAG = "App"
     private lateinit var appInstance: App
     /**
@@ -79,14 +69,11 @@ class App : UninitializedApp(), ViewModelStoreOwner {
     }
   }
 
-  val dns = DnsConfig()
-  private lateinit var connectivityManager: ConnectivityManager
   private lateinit var mdmChangeReceiver: MDMSettingsChangedReceiver
   override val viewModelStore: ViewModelStore
     get() = appViewModelStore
 
   private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
-  var healthNotifier: HealthNotifier? = null
 
   override fun onCreate() {
     super.onCreate()
@@ -100,16 +87,7 @@ class App : UninitializedApp(), ViewModelStoreOwner {
         getString(R.string.vpn_status),
         getString(R.string.optional_notifications_which_display_the_status_of_the_vpn_tunnel),
         NotificationManagerCompat.IMPORTANCE_MIN)
-    createNotificationChannel(
-        FILE_CHANNEL_ID,
-        getString(R.string.taildrop_file_transfers),
-        getString(R.string.notifications_delivered_when_a_file_is_received_using_taildrop),
-        NotificationManagerCompat.IMPORTANCE_DEFAULT)
-    createNotificationChannel(
-        HealthNotifier.HEALTH_CHANNEL_ID,
-        getString(R.string.health_channel_name),
-        getString(R.string.health_channel_description),
-        NotificationManagerCompat.IMPORTANCE_HIGH)
+    LEGACY_CHANNEL_IDS.forEach { notificationManager.deleteNotificationChannel(it) }
     createNotificationChannel(
         CHANNEL_ID,
         "Security Alerts",
@@ -124,7 +102,6 @@ class App : UninitializedApp(), ViewModelStoreOwner {
 
   override fun onTerminate() {
     super.onTerminate()
-    Notifier.stop()
     notificationManager.cancelAll()
     applicationScope.cancel()
     viewModelStore.clear()
@@ -143,80 +120,35 @@ class App : UninitializedApp(), ViewModelStoreOwner {
   }
 
   private fun initializeApp() {
-    // Check if a directory URI has already been stored.
-    val storedUri = getStoredDirectoryUri()
-    if (storedUri != null && storedUri.toString().startsWith("content://")) {
-      initServices(storedUri.toString())
-    } else {
-      initServices(this.filesDir.absolutePath)
-    }
-    healthNotifier = HealthNotifier(Notifier.health, Notifier.state, applicationScope)
-    connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    NetworkChangeCallback.monitorDnsChanges(connectivityManager, dns)
     initViewModels()
     applicationScope.launch {
       val rm = getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
       MDMSettings.update(get(), rm)
-      Notifier.state.collect { _ ->
-        combine(Notifier.state, MDMSettings.forceEnabled.flow, Notifier.prefs, Notifier.netmap) {
-                state,
-                forceEnabled,
-                prefs,
-                netmap ->
-              Triple(state, forceEnabled, getExitNodeName(prefs, netmap))
+      combine(Notifier.state, MDMSettings.forceEnabled.flow) { state, forceEnabled ->
+            state to forceEnabled
+          }
+          .distinctUntilChanged()
+          .collect { (state, hideDisconnectAction) ->
+            val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
+            // If VPN is stopped, show a disconnected notification. If it is running as a
+            // foreground service, IPNService will show a connected notification.
+            if (state == Ipn.State.Stopped) {
+              notifyStatus(vpnRunning = false, hideDisconnectAction = hideDisconnectAction.value)
             }
-            .distinctUntilChanged()
-            .collect { (state, hideDisconnectAction, exitNodeName) ->
-              val ableToStartVPN = state > Ipn.State.NeedsMachineAuth
-              // If VPN is stopped, show a disconnected notification. If it is running as a
-              // foreground service, IPNService will show a connected notification.
-              if (state == Ipn.State.Stopped) {
-                notifyStatus(vpnRunning = false, hideDisconnectAction = hideDisconnectAction.value)
-              }
-              val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
-              updateConnStatus(ableToStartVPN)
-              QuickToggleService.setVPNRunning(vpnRunning)
-              // Update notification status when VPN is running
-              if (vpnRunning) {
-                notifyStatus(
-                    vpnRunning = true,
-                    hideDisconnectAction = hideDisconnectAction.value,
-                    exitNodeName = exitNodeName)
-              }
+            val vpnRunning = state == Ipn.State.Starting || state == Ipn.State.Running
+            updateConnStatus(ableToStartVPN)
+            QuickToggleService.setVPNRunning(vpnRunning)
+            // Update notification status when VPN is running
+            if (vpnRunning) {
+              notifyStatus(vpnRunning = true, hideDisconnectAction = hideDisconnectAction.value)
             }
-      }
-    }
-    applicationScope.launch {
-      val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
+          }
     }
     TSLog.init(this)
-    FeatureFlags.initialize(mapOf("enable_new_search" to true))
-  }
-  /**
-   * Called when a SAF directory URI is available (either already stored or chosen). We must restart
-   * Tailscale because directFileRoot must be set before LocalBackend starts being used.
-   */
-  fun initServices(directFileRoot: String) {
-    ShareFileHelper.init(this, directFileRoot, applicationScope)
-    Notifier.start(applicationScope)
   }
 
   private fun initViewModels() {
-    appViewModel =
-        ViewModelProvider(this, AppViewModelFactory(this, ShareFileHelper.observeTaildropPrompt()))
-            .get(AppViewModel::class.java)
-  }
-
-  fun setWantRunning(wantRunning: Boolean, onSuccess: (() -> Unit)? = null) {
-    val callback: (Result<Ipn.Prefs>) -> Unit = { result ->
-      result.fold(
-          onSuccess = { onSuccess?.invoke() },
-          onFailure = { error ->
-            TSLog.d("TAG", "Set want running: failed to update preferences: ${error.message}")
-          })
-    }
-    Client(applicationScope)
-        .editPrefs(Ipn.MaskedPrefs().apply { WantRunning = wantRunning }, callback)
+    appViewModel = ViewModelProvider(this, AppViewModelFactory(this)).get(AppViewModel::class.java)
   }
 
   @Throws(IOException::class, GeneralSecurityException::class)
@@ -230,10 +162,6 @@ class App : UninitializedApp(), ViewModelStoreOwner {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
   }
 
-  fun getStoredDirectoryUri(): Uri? {
-    val uriString = getEncryptedPrefs().getString(PREF_KEY_SAF_URI, null)
-    return uriString?.let { Uri.parse(it) }
-  }
   /*
    * setAbleToStartVPN remembers whether or not we're able to start the VPN
    * by storing this in a shared preference. This allows us to check this
@@ -254,7 +182,6 @@ open class UninitializedApp : Application() {
   companion object {
     const val TAG = "UninitializedApp"
     const val STATUS_NOTIFICATION_ID = 1
-    const val STATUS_EXIT_NODE_FAILURE_NOTIFICATION_ID = 2
     const val STATUS_CHANNEL_ID = "barghest-status"
     const val CHANNEL_ID = "barghest-security"
     // Key for shared preference that tracks whether or not we're able to start
@@ -271,17 +198,6 @@ open class UninitializedApp : Application() {
     @JvmStatic
     fun get(): UninitializedApp {
       return appInstance
-    }
-    /**
-     * Return the name of the active (but not the selected/prior one) exit node based on the
-     * provided [Ipn.Prefs] and [Netmap.NetworkMap].
-     *
-     * @return The name of the exit node or `null` if there isn't one.
-     */
-    fun getExitNodeName(prefs: Ipn.Prefs?, netmap: Netmap.NetworkMap?): String? {
-      return prefs?.activeExitNodeID?.let { exitNodeID ->
-        netmap?.Peers?.find { it.StableID == exitNodeID }?.exitNodeName
-      }
     }
   }
 
@@ -356,12 +272,8 @@ open class UninitializedApp : Application() {
     notificationManager.createNotificationChannel(channel)
   }
 
-  fun notifyStatus(
-      vpnRunning: Boolean,
-      hideDisconnectAction: Boolean,
-      exitNodeName: String? = null
-  ) {
-    notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction, exitNodeName))
+  fun notifyStatus(vpnRunning: Boolean, hideDisconnectAction: Boolean) {
+    notifyStatus(buildStatusNotification(vpnRunning, hideDisconnectAction))
   }
 
   fun notifyStatus(notification: Notification) {
@@ -379,16 +291,8 @@ open class UninitializedApp : Application() {
     notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
   }
 
-  fun buildStatusNotification(
-      vpnRunning: Boolean,
-      hideDisconnectAction: Boolean,
-      exitNodeName: String? = null
-  ): Notification {
+  fun buildStatusNotification(vpnRunning: Boolean, hideDisconnectAction: Boolean): Notification {
     val title = getString(if (vpnRunning) R.string.connected else R.string.not_connected)
-    val message =
-        if (vpnRunning && exitNodeName != null) {
-          getString(R.string.using_exit_node, exitNodeName)
-        } else null
     val icon = if (vpnRunning) R.drawable.ic_notification else R.drawable.ic_notification_disabled
     val action =
         if (vpnRunning) IPNReceiver.INTENT_DISCONNECT_VPN else IPNReceiver.INTENT_CONNECT_VPN
@@ -411,7 +315,6 @@ open class UninitializedApp : Application() {
         NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
             .setSmallIcon(icon)
             .setContentTitle(title)
-            .setContentText(message)
             .setAutoCancel(!vpnRunning)
             .setOnlyAlertOnce(!vpnRunning)
             .setOngoing(vpnRunning)

@@ -2,71 +2,16 @@
 <resources>
 
     <!-- Generic Strings -->
-    <string name="log_in">Log in</string>
-    <string name="log_out">Log out</string>
-    <string name="none">None</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
-    <string name="unknown_user">Unknown user</string>
     <string name="connected">Connected</string>
-    <string name="using_exit_node">Using exit node (%s)</string>
     <string name="not_connected">Not connected</string>
-    <string name="empty" translatable="false"> </string>
-    <string name="template" translatable="false">%s</string>
-    <string name="selected">Selected</string> 
-    <string name="offline">Offline</string>
-    <string name="ok">OK</string>
-    <string name="_continue">Continue</string>
-    <string name="warning">Warning</string>
-    <string name="search">Search</string>
-    <string name="search_ellipsis">Search...</string>
-    <string name="dismiss">Dismiss</string>
-    <string name="no_results">No results</string>
-    <string name="back">Back</string>
-    <string name="clear_search">Clear search</string>
     <string name="off">Off</string>
     <string name="on">On</string>
     <string name="try_again">Try again</string>
     <string name="cancel">Cancel</string>
 
     <!-- Strings for MeshHomeView -->>
-    <string name="settings">Settings</string>
-    <string name="app_name_mesh">> MESH</string>
-    <string name="tagline_mesh">secure, end-to-end encrypted ADB access to your phone over the internet</string>
-    <string name="connected_to">Connected to</string>
-    <string name="mesh_network_generic">MESH network</string>
-    <string name="add_auth_key_prompt">Control server set. Add an auth key.</string>
-    <string name="set_control_and_key_prompt">Set a control server and an auth key.</string>
-    <string name="control_server_connection">Control server connection</string>
-    <string name="control_configured">[ CTRL SERVER CONFIGURED ]</string>
-    <string name="control_not_set">[ CTRL SERVER NOT SET ]</string>
-    <string name="step_set_control">Set control</string>
-    <string name="connect_steps_title">[ CONNECT ]</string>
-    <string name="connect_steps_subtitle">Follow these steps to connect this peer node to an authority node.</string>
-    <string name="step_enable_adb_short">Enable ADB</string>
-    <string name="step_auth_key_short">Auth key</string>
-    <string name="powered_by_mesh"></string>
-    <string name="footer_brand">[ BARGHEST.ASIA ]</string>
-
-    <!-- Additional MeshHomeView strings -->
-    <string name="settings_description">Settings</string>
-    <string name="mesh_logo_description">MESH Logo</string>
-    <!-- Connection status labels: each state has distinct text, so state is never conveyed by colour alone. -->
-    <string name="mesh_status_connected">[ CONNECTED ]</string>
-    <string name="mesh_status_vpn_off">[ CONNECTED · VPN OFF ]</string>
-    <string name="mesh_status_disconnected">[ DISCONNECTED ]</string>
-    <string name="disconnected_from_mesh">Disconnected from MESH network</string>
-    <string name="connection_options">[ CONNECT ] </string>
-    <string name="manage_connection">Manage your connection or add additional accounts</string>
-    <string name="follow_steps_connect">Follow these steps to connect this peer node to an authority node</string>
-    <string name="step_1_enable_adb">Enable_ADB</string>
-    <string name="step_1_description">Enable ADB-over-WiFi</string>
-    <string name="step_2_control_server">Set Control_Server</string>
-    <string name="step_2_description">Connect to a control server</string>
-    <string name="step_3_auth_key">Set AUTH_KEY</string>
-    <string name="step_3_description">Use an auth key to join the MESH</string>
-    <string name="control_server_status_description">Your custom control server connection status</string>
-    <string name="set_to">Set to:</string>
 
     <!-- Strings for the about screen -->
     <string name="app_name" translatable="false">MESH</string>
@@ -78,171 +23,12 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="terms_of_service">Terms of Service</string>
     <string name="about_view_footnotes">WireGuard is a registered trademark of Jason A. Donenfeld.\nPortions Copyright (c) BARGHEST and licensed under AGPL-3.0-or-later.</string>
-    <string name="managed_by">Managed by</string>
-
-    <!-- Strings for the bug reporting screen -->
-    <string name="bug_report_title">Report a bug</string>
-    <string name="bug_report_instructions_prefix">To report a bug,&#160;</string>
-    <string name="bug_report_instructions_linktext">contact our support team&#160;</string>
-    <string name="bug_report_instructions_suffix"> and include the identifier below.</string>
-    <string name="bug_report_id_desc">This ID helps us find the event in our diagnostic logs. This process does not share any of your personally-identifiable information.</string>
-
-    <!-- Strings for the settings screen -->
-    <string name="settings_title">Settings</string>
-    <string name="settings_admin_prefix">"Manage your MESH settings in the "</string>
-    <string name="settings_admin_link">admin console</string>
-    <string name="about_mesh">[ ABOUT MESH ]</string>
-    <string name="bug_report">Bug report</string>
-    <string name="use_ts_dns">Use Magic DNS</string>
-    <string name="internal_debug_options">Internal debug options</string>
-
-    <!-- Strings for the main screen -->
-    <string name="close_plain">close</string>
-    <string name="exit_node">EXIT NODE</string>
-    <string name="exit_node_offline">EXIT NODE OFFLINE</string>
-    <string name="running_exit_node">Running on this device</string>
-    <string name="exit_node_offline_mdm_orgname">The exit node selected by %1$s is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
-    <string name="exit_node_offline_mdm">The exit node selected by your organization is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
-    <string name="starting">Starting…</string>
-    <string name="connect_to_MESH_prefix">"Connect again to talk to the other devices in the "</string>
-    <string name="connect_to_MESH_suffix">"[ MESH NETWORKS ]"</string>
-    <string name="welcome_to_mesh">Welcome to MESH</string>
-    <string name="login_to_join_your_MESH">Log in to join your MESH and connect your devices.</string>
-    <string name="give_permissions">Set up a VPN connection so you can start using MESH.</string>
-    <string name="keyExpiryExplainer">Reauthenticate to remain connected to MESH.</string>
-    <string name="deviceKeyNeverExpires">Device key does not expire</string>
-    <string name="deviceKeyExpires">Device key expires %s</string>
-    <string name="deviceKeyExpired">Device key expired %s</string>
-    <string name="machine_auth_required">Admin approval required</string>
-    <string name="machine_auth_explainer">This device must be approved by an administrator before it can connect to the MESH.</string>
-    <string name="open_admin_console">Open admin console</string>
-    <string name="needs_machine_auth">Authorization required</string>
-    <string name="disable">Disable</string>
-    <string name="enable">Enable</string>
-    <string name="stop">Stop</string>
-
-    <!-- Strings for peer details -->
-    <string name="os">OS</string>
-    <string name="key_expiry">Key expiry</string>
-    <string name="mesh_address">Peer addresses</string>
 
     <!-- Strings for device information -->
     <string name="device_information">Device Information</string>
 
     <!-- Strings for MDM settings -->
     <string name="current_mdm_settings">Current MDM settings</string>
-    <string name="mdm_settings">MDM settings</string>
-    <string name="managed_by_orgName">Managed by %1$s</string>
-    <string name="managed_by_explainer">Your organization is managing MESH on this device. Some features might have been customized or hidden by your system administrator.</string>
-    <string name="managed_by_explainer_orgName">%1$s is managing MESH on this device. Some features might have been customized or hidden by your system administrator.</string>
-    <string name="open_support">Open support</string>
-
-    <!-- State strings -->
-    <string name="placeholder" translatable="false">--</string>
-    <string name="please_login">Control server URL and auth key required</string>
-    <string name="stopped">Not connected</string>
-    <string name="connect_to_vpn">Connect to VPN</string>
-
-    <!-- Time conversion templates -->
-    <string name="under_a_minute">under a minute</string>
-    <string name="in_x_minutes">in %d minutes</string>
-    <string name="in_x_hours">in %d hours</string>
-    <string name="in_x_days">in %d days</string>
-    <string name="in_x_months">in %d months</string>
-    <string name="in_x_years">in %.1f years</string>
-
-    <string name="ago_x_minutes">%d minutes ago</string>
-    <string name="ago_x_hours">%d hours ago</string>
-    <string name="ago_x_days">%d days ago</string>
-    <string name="ago_x_months">%d months ago</string>
-    <string name="ago_x_years">%.1f years ago</string>
-
-    <!-- Strings for the user switcher -->
-    <string name="logout_failed">Unable to logout at this time. Please try again.</string>
-    <string name="error">Error</string>
-    <string name="accounts">Sessions</string>
-    <string name="add_account">Add connection</string>
-    <string name="add_account_short">Save</string>
-    <string name="reauthenticate">Reauthenticate</string>
-    <string name="switch_user_failed">Unable to switch users. Please try again.</string>
-    <string name="add_profile_failed">Unable to add a new profile. Please try again.</string>
-    <string name="invalidCustomUrl">Please enter a valid URL in the form https://server.com</string>
-    <string name="invalidCustomURLTitle">Invalid URL</string>
-    <string name="custom_control_menu">Use the control server for your authority node</string>
-    <string name="custom_control_menu_desc">Enter the control server URL given to you by whoever runs the authority node.</string>
-    <string name="custom_control_placeholder" translatable="false">https://mesh.barghest.asia/</string>
-    <string name="auth_key_menu">Use an auth key</string>
-    <string name="auth_key_title">Connect with an auth key</string>
-    <string name="auth_key_explanation">Enter the auth key generated on the authority node.</string>
-    <string name="auth_key_placeholder" translatable="false">e.g. tskey-auth-xxxxxxxxxx</string>
-    <string name="invalidAuthKey">The provided auth key is not in the correct format.</string>
-    <string name="invalidAuthKeyTitle">Invalid key</string>
-    <string name="custom_control_url_title">Control server</string>
-    <string name="auth_key_input_title">Auth key</string>
-    <string name="delete_MESH">Delete MESH</string>
-    <string name="contact_support">Contact support</string>
-    <string name="request_deletion_nonowner">All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.</string>
-    <string name="request_deletion_owner_part1">
-    As the owner of this MESH, to remove yourself from the MESH you can either reassign ownership and contact our Support team, or delete the whole MESH through the admin console. To do the latter, go to
-</string>
-<string name="request_deletion_owner_part2a">
-    and look for “Delete MESH”.
-</string>
-
-<string name="request_deletion_owner_part2b">
-    All requests related to the removal or deletion of data are handled by our Support team. To open a request, tap the Contact Support button below to be taken to our contact form in the browser. Complete the form, and a Customer Support Engineer will work with you directly to assist.
-</string>
-
-    <!-- Strings for ExitNode picker -->
-    <string name="choose_exit_node">Choose exit node</string>
-    <string name="choose_mullvad_exit_node">Mullvad exit nodes</string>
-    <string name="mullvad_exit_nodes" translatable="false">Mullvad VPN</string>
-    <string name="best_available">Best available</string>
-    <string name="run_as_exit_node">Run as exit node</string>
-    <string name="run_this_device_as_an_exit_node">Run as exit node?</string>
-    <string name="run_exit_node_explainer">Other devices in your MESH will be able to route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
-    <string name="run_exit_node_caution">Running an exit node will severely impact battery life. On a metered data plan, significant cellular data charges may also apply. Always disable this feature when no longer needed.</string>
-    <string name="stop_running_as_exit_node">Stop running as exit node</string>
-    <string name="start_running_as_exit_node">Run as exit node</string>
-    <string name="running_as_exit_node">Now running as exit node</string>
-    <string name="run_exit_node_explainer_running">Other devices in your MESH can now route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
-    <string name="enabled">Enabled</string>
-    <string name="disabled">Disabled</string>
-    <string name="exit_node_mdm_orgname">%1$s requires you to use an exit node.</string>
-    <string name="exit_node_mdm">Your organization requires you to use an exit node.</string>
-
-    <!-- Strings for the MESH lock screen -->
-    <string name="MESH_lock">MESH lock</string>
-    <string name="MESH_lock_explainer">"MESH lock lets devices in your network verify public keys distributed by the coordination server before trusting them for connectivity. "</string>
-    <string name="MESH_lock_enabled">MESH lock is currently enabled.</string>
-    <string name="MESH_lock_disabled">MESH lock is currently not enabled.</string>
-    <string name="this_node_has_been_signed">This node has been signed by another device.</string>
-    <string name="this_node_has_not_been_signed">This node has not been signed by another device.</string>
-    <string name="this_node_is_trusted">This node is trusted to change the MESH lock configuration.</string>
-    <string name="this_node_is_not_trusted">This node is not trusted to change the MESH lock configuration.</string>
-    <string name="copy_to_clipboard">Copy to clipboard</string>
-    <string name="node_key">Node key</string>
-    <string name="MESH_lock_key">MESH lock key</string>
-    <string name="node_key_explainer">Used to sign this node from another signing device in your MESH.</string>
-    <string name="MESH_lock_key_explainer">Used to authorize changes to the MESH lock configuration.</string>
-
-    <!-- Strings for the bug report screen -->
-    <string name="bug_report_id">Bug report ID</string>
-    <string name="learn_more">Learn more</string>
-
-    <!-- Strings for DNS settings -->
-    <string name="dns_settings">DNS settings</string>
-    <string name="using_mesh_dns">Using Magic DNS</string>
-    <string name="this_device_is_using_tailscale_to_resolve_dns_names">This device is using MagicDNS to resolve DNS names.</string>
-    <string name="resolvers">Resolvers</string>
-    <string name="search_domains">Search domains</string>
-    <string name="not_running">Not running</string>
-    <string name="mesh_is_not_running_this_device_is_using_the_system_dns_resolver">MESH is not running. This device is using the system\'s DNS resolver.</string>
-    <string name="this_device_is_using_the_system_dns_resolver">This device is using the system DNS resolver.</string>
-    <string name="not_using_mesh_dns">Not using MESH DNS</string>
-    <string name="allow_lan_access">Allow LAN access</string>
-    <string name="countries">countries</string>
-    <string name="cities_available">cities available</string>
 
     <!-- Strings for MDM Settings Manifest (app_restrictions.xml) -->
     <string name="prevents_the_user_from_disconnecting_tailscale">Prevents the user from disconnecting MESH.</string>
@@ -280,79 +66,23 @@
     <string name="onboarding_flow">Skip the Onboarding Flow</string>
 
     <!-- Permissions Management -->
-    <string name="permissions">Permissions</string>
     <string name="permission_write_external_storage">Storage</string>
     <string name="permission_write_external_storage_needed">We use storage in order to receive files with Taildrop.</string>
     <string name="permission_post_notifications">Notifications</string>
     <string name="permission_post_notifications_needed">We use notifications to help you troubleshoot broken connections, or notify you before you need to reauthenticate to your network. Persistent status notifications are off by default and can be enabled in system settings. </string>
     <string name="open_notification_settings">Go to notification settings</string>
     <string name="notification_settings_explanation">Persistent status notifications are off by default and can be enabled in system settings.</string>
-    <string name="taildrop_dir">Taildrop directory</string>
-    <string name="taildrop_dir_access">Taildrop directory access</string>
-    <string name="permission_taildrop_dir">Give MESH access to a folder in order to be able to download incoming files sent to you via Taildrop.</string>
-    <string name="dir_access">Directory access</string>
-    <string name="pick_dir">Pick a different directory</string>
-
-    <!-- Strings for the share activity -->
-    <string name="share">Send with Taildrop</string>
-    <string name="share_device_not_connected">Unable to share files with this device. This device is not currently connected to the MESH.</string>
-    <string name="no_files_to_share">No files to share</string>
-    <string name="file_count">%1$s files</string>
-    <string name="connect_to_your_MESH_to_share_files">Connect to your MESH to share files.</string>
-    <string name="my_devices">My devices</string>
-    <string name="no_devices_to_share_with">There are no devices on your MESH to share to</string>
-    <string name="taildrop_share_failed">Taildrop failed. Some files were not shared. Please try again.</string>
-    <string name="taildrop_sending">Sending</string>
-    <string name="taildrop_share_failed_short">Failed</string>
-
-
-    <!-- Error Dialog Titles -->
-    <string name="logout_failed_title">Logout failed</string>
-    <string name="switch_user_failed_title">Cannot switch to user</string>
-    <string name="add_profile_failed_title">Unable to add profile</string>
-    <string name="share_device_not_connected_title">Not connected</string>
-    <string name="taildrop_share_failed_title">Taildrop failed</string>
-
-    <!-- Strings for the intro screen -->
-    <string name="getStarted">Get Started</string>
-    <string name="welcome1">MESH is a mesh VPN for securely connecting your devices.</string>
-    <string name="welcome2">All connections are device-to-device, so we never see your data. We collect and use your email address and name, as well as your device name, OS version, and IP address in order to help you to connect your devices and manage your settings. We log when you are connected to your network.</string>
-    <string name="scan_to_connect_to_your_MESH">Scan this QR code to log in to your MESH</string>
-    <string name="enter_code_to_connect_to_MESH">or enter this code in the Machines > Add device section of the admin console: </string>
-
-    <!-- Strings for intent handling -->
-    <string name="vpn_is_not_ready_to_start">VPN is not ready to start</string>
-    <string name="tailscale_is_not_setup">MESH is not setup</string>
-    <string name="no_peers_found">No peers found</string>
-    <string name="no_peers_with_name_found">No peers with name %1$s found</string>
-    <string name="multiple_peers_with_name_found">Multiple peers with name %1$s found</string>
-    <string name="peer_with_name_is_not_an_exit_node">Peer with name %1$s is not an exit node</string>
-    <string name="use_exit_node_intent_failed">Use Exit Node Intent Failed</string>
 
     <!-- Strings for the IPNReceiver -->
     <string name="title_connection_failed">MESH Connection Failed</string>
     <string name="body_open_tailscale">Tap here to open Tailscale.</string>
 
     <!-- Strings describing notification channels -->
-    <string name="taildrop_file_transfers">Taildrop file transfers</string>
     <string name="vpn_status">VPN status</string>
     <string name="vpn_start">VPN start</string>
     <string name="notifications_delivered_when_user_interaction_is_required_to_establish_the_vpn_tunnel">Notifications delivered when user interaction is required to establish the VPN tunnel.</string>
     <string name="optional_notifications_which_display_the_status_of_the_vpn_tunnel">Optional notifications which display the status of the VPN tunnel.</string>
-    <string name="notifications_delivered_when_a_file_is_received_using_taildrop">Notifications delivered when a file is received using Taildrop.</string>
-    <string name="health_channel_name">Errors and warnings</string>
-    <string name="health_channel_description">This notification category is used to deliver important status notifications and should be left enabled. For instance, it is used to notify you about errors or warnings that affect Internet connectivity.</string>
-    <string name="copy_ip_address">Copy IP Address</string>
-    <string name="ping">Ping</string>
-    <string name="relayed_connection">Relayed connection (%1$s)</string>
-    <string name="direct_connection">Direct connection</string>
-    <string name="pinging_node_name">Pinging %1$s</string>
-    <string name="pingFailed">Ping failed</string>
-    <string name="an_unknown_error_occurred_please_try_again">An unknown error occurred. Please try again.</string>
-    <string name="request_timed_out_make_sure_that_is_online">Request timed out. Make sure that \'%1$s\' is online.</string>
     <string name="split_tunneling">App split tunneling</string>
-    <string name="exclude_certain_apps_from_using_tailscale">Exclude certain apps from using MESH</string>
-    <string name="selected_apps_will_access_the_internet_directly_without_using_tailscale">Apps selected here will access the Internet directly, without using MESH.</string>
     <string name="count_excluded_apps">Excluded apps (%1$s)</string>
     <string name="certain_apps_are_not_routed_via_tailscale">Certain apps are not routed via MESH on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
     <string name="only_specific_apps_are_routed_via_tailscale">Only specific apps are routed via Tailscale on this device. This setting is managed by your organization and cannot be changed by you. For more information, contact your network administrator.</string>
@@ -361,94 +91,21 @@
     <string name="included_packages">Included packages</string>
     <string name="excluded_packages">Excluded packages</string>
 
-    <!-- Strings for the Mullvad info view -->
-    <string name="enable_in_the_admin_console">Enable in the admin console</string>
-    <string name="mullvad_info_explainer">Once you enable Mullvad VPN on the admin console, you\'ll be able to encrypt and route your traffic using Mullvad’s global network of servers as exit nodes.</string>
-    <string name="mullvad_info_title">Mullvad VPN is not configured</string>
-    <string name="the_mullvad_vpn_logo">The Mullvad VPN logo</string>
-    <string name="health_warnings">Health warnings</string>
-    <string name="no_issues_found">No issues found</string>
-    <string name="tailscale_is_operating_normally">MESH is operating normally.</string>
-
     <!-- Strings for the multiple VPNs dialog -->
     <string name="vpn_permission_denied">VPN permission denied</string>
     <string name="multiple_vpn_explainer">Only one VPN can be active, and it appears another is already running. Before starting MESH, disable the other VPN.</string>
     <string name="go_to_settings">Go to Settings</string>
-    <string name="subnet_routes">Subnet routes</string>
-    <string name="run_as_subnet_router_header">Advertise routes to machines that are not running MESH to make them available in your MESH. Routes must be approved in the admin console.</string>
-    <string name="open_kb_article">Open KB Article</string>
-    <string name="delete_route">Delete route</string>
-    <string name="edit_route">Edit route</string>
-    <string name="enter_valid_route">Enter an IPv4 or IPv6 route in CIDR format.</string>
-    <string name="advertised_routes">Advertised routes</string>
-    <string name="no_advertised_routes">No advertised routes</string>
-    <string name="add_new_route">Add route</string>
-    <string name="invalid_route">Invalid route</string>
-    <string name="valid_route">Valid route</string>
-    <string name="route_help_text">e.g. 192.168.1.0/24</string>
-    <string name="run_as_subnet_router">Run as subnet router</string>
-    <string name="use_tailscale_subnets_subtitle">Route traffic according to your network\'s rules. Some networks require this to access IP addresses that don\'t start with 100.x.y.z.</string>
-    <string name="subnet_routing">Subnet routing</string>
     <string name="specifies_a_device_name_to_be_used_instead_of_the_automatic_default">Specifies a device name to be used instead of the automatic default.</string>
     <string name="hostname">Hostname</string>
-    <string name="failed_to_save">Failed to save</string>
 
     <!-- Strings for fallback VPN dialog -->
     <string name="vpn_permission_needed">VPN permission needed</string>
     <string name="vpn_explainer">Tailscale needs VPN access, but it looks like your device may not show VPN settings. If you are using another VPN app or have work policies, disable them first, then try again.</string>
 
-    <!-- Strings for the taildrop directory picker interstitial -->
-    <string name="taildrop_directory_picker_title">Taildrop Directory</string>
-    <string name="taildrop_directory_picker_body">You have not selected a directory for incoming taildrop transfers. Please select or create a target directory.</string>
-    <string name="taildrop_directory_picker_info">What is taildrop?</string>
-    <string name="taildrop_directory_picker_button">Open Directory Picker</string>
-
-    <!-- AmneziaWG Settings -->
-    <string name="awg_settings">AmneziaWG Settings</string>
-    <string name="awg_settings_subtitle">Configure DPI evasion parameters</string>
-    <string name="awg_obfuscation_enabled">Obfuscation enabled</string>
-    <string name="awg_obfuscation_disabled">Using standard WireGuard</string>
-    <string name="awg_enable_obfuscation">Enable obfuscation</string>
-    <string name="awg_enable_obfuscation_desc">Enable AmneziaWG DPI evasion. When disabled, uses standard WireGuard protocol.</string>
-    <string name="awg_junk_packets">Junk Packets</string>
-    <string name="awg_jc">Jc (count)</string>
-    <string name="awg_jc_desc">Number of junk packets before handshake (0–128)</string>
-    <string name="awg_jmin">Jmin (bytes)</string>
-    <string name="awg_jmin_desc">Minimum junk packet size</string>
-    <string name="awg_jmax">Jmax (bytes)</string>
-    <string name="awg_jmax_desc">Maximum junk packet size (≤1280)</string>
-    <string name="awg_handshake_padding">Handshake Padding</string>
-    <string name="awg_s1">S1 (bytes)</string>
-    <string name="awg_s1_desc">Junk bytes in handshake init (0 or 15–150)</string>
-    <string name="awg_s2">S2 (bytes)</string>
-    <string name="awg_s2_desc">Junk bytes in handshake response (0 or 15–150)</string>
-    <string name="awg_message_types">Message Type Obfuscation</string>
-    <string name="awg_h1">H1</string>
-    <string name="awg_h2">H2</string>
-    <string name="awg_h3">H3</string>
-    <string name="awg_h4">H4</string>
-    <string name="awg_h_desc">Custom message type identifiers (all must be different, ≥1)</string>
-    <string name="awg_save">Save &amp; Apply</string>
-    <string name="awg_reset_defaults">Reset to Defaults</string>
-    <string name="awg_saved">AmneziaWG settings saved. Reconnect to apply.</string>
-    <string name="awg_validation_error">Invalid configuration</string>
-    <string name="awg_restart_required">Settings saved. Disconnect and reconnect to apply changes.</string>
-
-    <!-- Reset auth -->
-    <string name="reset_mesh">Reset MESH</string>
-    <string name="reset_mesh_subtitle">Clear keys, profiles &amp; preferences; keeps app data</string>
-    <string name="reset_mesh_confirm_title">Reset MESH?</string>
-    <string name="reset_mesh_confirm_message">This erases all node keys, control planes profiles, and preferences on this device and disconnects the tunnel. Downloaded files and app data are kept. You\'ll need to log in again.</string>
-    <string name="reset">Reset</string>
-    <string name="reset_failed">Unable to reset MESH at this time. Please try again.</string>
-    <string name="reset_failed_title">Reset failed</string>
-
-    <!-- ============ Redesigned client (ui/view/mesh) ============ -->
     <!-- Onboarding -->
     <string name="mesh_onb_get_started">Get started</string>
     <string name="mesh_onb_continue">Continue</string>
     <string name="mesh_onb_understand">I understand</string>
-    <string name="mesh_onb_pending_notice">The authority node\'s link is ready — you\'ll be asked for a PIN next.</string>
     <string name="mesh_back">back</string>
     <string name="mesh_quiz_title">Pop quiz!</string>
     <string name="mesh_quiz_consent">Remote ADB access can expose sensitive data on your device.</string>
@@ -492,8 +149,6 @@
     <string name="mesh_tile_control_sub">End anytime</string>
     <string name="mesh_learn_card_title">How a session works</string>
     <string name="mesh_learn_card_sub">What the authority node can and can\'t do</string>
-    <string name="mesh_exit_node">Exit node</string>
-    <string name="mesh_exit_node_none">None — traffic stays direct</string>
     <string name="mesh_adb_on_title">Wireless debugging is on</string>
     <string name="mesh_adb_on_sub">Your phone is ready to connect</string>
     <string name="mesh_adb_off_title">Set up wireless debugging</string>
@@ -506,27 +161,14 @@
 
     <!-- Settings -->
     <string name="mesh_topbar_settings">Settings</string>
-    <string name="mesh_set_group_connection">Connection</string>
-    <string name="mesh_set_control_server">Control server</string>
-    <string name="mesh_set_not_configured">Not configured</string>
-    <string name="mesh_set_exit_node">Exit node</string>
-    <string name="mesh_set_exit_node_sub">Route your traffic through a peer</string>
     <string name="mesh_set_group_network">Network</string>
-    <string name="mesh_set_magic_dns">Magic DNS</string>
-    <string name="mesh_set_magic_dns_sub">Resolve devices by name on your mesh</string>
     <string name="mesh_set_split">App split tunneling</string>
     <string name="mesh_set_split_sub">Choose which apps use MESH</string>
-    <string name="mesh_set_group_privacy">Privacy</string>
-    <string name="mesh_set_obfuscation">Disguise traffic (AmneziaWG)</string>
-    <string name="mesh_set_obfuscation_sub">Hide the connection from network censors</string>
     <string name="mesh_set_group_about">About</string>
     <string name="mesh_set_version">MESH v%1$s</string>
     <string name="mesh_set_source">View source on GitHub</string>
     <string name="mesh_set_license">Open-source license</string>
     <string name="mesh_set_license_sub">AGPL-3.0-or-later</string>
-    <string name="mesh_set_group_danger">Danger zone</string>
-    <string name="mesh_set_forget">Forget enrollment</string>
-    <string name="mesh_set_forget_sub">Sign out and remove this device from the network</string>
     <string name="mesh_set_footer">MESH · the app collects no data</string>
 
     <!-- Learn -->

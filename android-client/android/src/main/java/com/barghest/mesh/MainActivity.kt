@@ -17,24 +17,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.RestrictionsManager
 import android.content.pm.ActivityInfo
-import android.content.pm.PackageManager
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Process
 import android.provider.Settings
-import android.util.Base64
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -42,11 +35,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,7 +59,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -80,72 +70,30 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.barghest.mesh.mdm.MDMSettings
 import com.barghest.mesh.mdm.ShowHide
-import com.barghest.mesh.ui.notifier.Notifier
 import com.barghest.mesh.ui.theme.AppTheme
-import com.barghest.mesh.ui.util.AndroidTVUtil
-import com.barghest.mesh.ui.util.set
 import com.barghest.mesh.ui.util.universalFit
 import com.barghest.mesh.ui.model.Ipn
 import com.barghest.mesh.ui.view.ADBSetup
 import com.barghest.mesh.ui.view.mesh.MeshFlow
 import com.barghest.mesh.ui.view.mesh.MeshLiveEnv
 import com.barghest.mesh.ui.view.mesh.MeshOnboarding
-import com.barghest.mesh.ui.view.mesh.MeshDefaults
-import com.barghest.mesh.ui.view.AWGSettingsView
 import com.barghest.mesh.ui.view.AboutView
-import com.barghest.mesh.ui.view.DNSSettingsView
 import com.barghest.mesh.ui.view.DeviceInfoView
-import com.barghest.mesh.ui.view.ExitNodePicker
-import com.barghest.mesh.ui.view.HealthView
-import com.barghest.mesh.ui.view.LoginWithAuthKeyView
-import com.barghest.mesh.ui.view.LoginWithCustomControlURLView
 import com.barghest.mesh.ui.view.MDMSettingsDebugView
-import com.barghest.mesh.ui.view.MainView
-import com.barghest.mesh.ui.view.MainViewNavigation
-import com.barghest.mesh.ui.view.MullvadExitNodePicker
-import com.barghest.mesh.ui.view.MullvadExitNodePickerList
-import com.barghest.mesh.ui.view.MullvadInfoView
 import com.barghest.mesh.ui.view.NotificationsView
-import com.barghest.mesh.ui.view.PeerDetails
-import com.barghest.mesh.ui.view.PermissionsView
-import com.barghest.mesh.ui.view.PrimaryActionButton
-import com.barghest.mesh.ui.view.RunExitNodeView
-import com.barghest.mesh.ui.view.SearchView
-import com.barghest.mesh.ui.view.SettingsView
 import com.barghest.mesh.ui.view.SplitTunnelAppPickerView
-import com.barghest.mesh.ui.view.SubnetRoutingView
-import com.barghest.mesh.ui.view.TaildropDirView
-import com.barghest.mesh.ui.view.TaildropDirectoryPickerPrompt
-import com.barghest.mesh.ui.view.TailnetLockSetupView
-import com.barghest.mesh.ui.view.UserSwitcherNav
-import com.barghest.mesh.ui.view.UserSwitcherView
-import com.barghest.mesh.ui.view.onboarding.OnboardingScreen
 import com.barghest.mesh.ui.view.onboarding.QRScanStep
 import com.barghest.mesh.ui.viewModel.AppViewModel
-import com.barghest.mesh.ui.viewModel.ExitNodePickerNav
-import com.barghest.mesh.ui.viewModel.LoginWithAuthKeyViewModel
 import com.barghest.mesh.ui.viewModel.MainViewModel
 import com.barghest.mesh.ui.viewModel.MainViewModelFactory
-import com.barghest.mesh.ui.viewModel.PermissionsViewModel
-import com.barghest.mesh.ui.viewModel.PingViewModel
-import com.barghest.mesh.ui.viewModel.SettingsNav
-import com.barghest.mesh.util.ShareFileHelper
 import com.barghest.mesh.util.TSLog
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -156,15 +104,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var appViewModel: AppViewModel
     private lateinit var viewModel: MainViewModel
 
-    val permissionsViewModel: PermissionsViewModel by viewModels()
-
     companion object {
         private const val TAG = "Main Activity"
         private const val START_AT_ROOT = "startAtRoot"
     }
 
-    private var pendingMeshAction: (() -> Unit)? = null
-    private var hasPendingMeshIntent by mutableStateOf(false)
     private var showPinDialog by mutableStateOf(false)
     private var pinDialogCallback: ((String) -> Unit)? = null
     private var showQRScanFromHome by mutableStateOf(false)
@@ -227,100 +171,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         viewModel.setVpnPermissionLauncher(vpnPermissionLauncher)
-        val directoryPickerLauncher =
-            registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
-                if (uri != null) {
-                    try {
-                        // Try to take persistable permissions for both read and write.
-                        contentResolver.takePersistableUriPermission(
-                            uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                        )
-                    } catch (e: SecurityException) {
-                        TSLog.e("MainActivity", "Failed to persist permissions: $e")
-                    }
-                    // Check if write permission is actually granted.
-                    val writePermission =
-                        this.checkUriPermission(
-                            uri,
-                            Process.myPid(),
-                            Process.myUid(),
-                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                        )
-                    if (writePermission == PackageManager.PERMISSION_GRANTED) {
-                        TSLog.d("MainActivity", "Write permission granted for $uri")
-
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            try {
-                                TaildropDirectoryStore.saveFileDirectory(uri)
-                                permissionsViewModel.refreshCurrentDir()
-                                ShareFileHelper.notifyDirectoryReady()
-                                ShareFileHelper.setUri(uri.toString())
-                            } catch (e: Exception) {
-                                TSLog.e("MainActivity", "Failed to set Taildrop root: $e")
-                            }
-                        }
-                    } else {
-                        TSLog.d(
-                            "MainActivity",
-                            "Write access not granted for $uri. Falling back to internal storage.",
-                        )
-                        // Don't save directory URI and fall back to internal storage.
-                    }
-                } else {
-                    TSLog.d(
-                        "MainActivity",
-                        "Taildrop directory not saved. Will fall back to internal storage.",
-                    )
-                    // Fall back to internal storage.
-                }
-            }
-
-        appViewModel.directoryPickerLauncher = directoryPickerLauncher
-
         // Check if device is rooted and alert if so
         // We do not want to abort, but we do want the analyst to be able to decide what to do next
         val rooted = RootUtil.isDeviceRooted
         val builder = AlertDialog.Builder(this)
 
         setContent {
-            var showDialog by remember { mutableStateOf(false) }
-
-            LaunchedEffect(Unit) {
-                appViewModel.triggerDirectoryPicker.collect {
-                    showDialog = true
-                }
-            }
-
             if (rooted) {
                 builder.setTitle("Device is rooted")
                 builder.setMessage("Rooted devices are less secure. If this is expected, please continue; otherwise check with whoever runs the authority node")
                 builder.show()
-            }
-
-            if (showDialog) {
-                AppTheme {
-                    AlertDialog(
-                        onDismissRequest = {
-                            showDialog = false
-                            appViewModel.directoryPickerLauncher?.launch(null)
-                        },
-                        title = {
-                            Text(text = stringResource(id = R.string.taildrop_directory_picker_title))
-                        },
-                        text = { TaildropDirectoryPickerPrompt() },
-                        confirmButton = {
-                            PrimaryActionButton(
-                                onClick = {
-                                    showDialog = false
-                                    appViewModel.directoryPickerLauncher?.launch(null)
-                                },
-                            ) {
-                                Text(text = stringResource(id = R.string.taildrop_directory_picker_button))
-                            }
-                        },
-                    )
-                }
             }
 
             navController = rememberNavController()
@@ -330,7 +190,6 @@ class MainActivity : ComponentActivity() {
                     // Background for the letterbox
                     Surface(modifier = Modifier.universalFit()) {
                         // Letterbox for AndroidTV
-                        // Redesigned client is the home; the legacy UI stays under Settings → Advanced.
                         val startDest = if (isIntroScreenViewedSet()) "meshFlow" else "onboarding"
                         NavHost(
                             navController = navController,
@@ -384,157 +243,18 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-                            val mainViewNav =
-                                MainViewNavigation(
-                                    onNavigateToSettings = { navController.navigate("settings") },
-                                    onNavigateToPeerDetails = {
-                                        navController.navigate("peerDetails/${it.StableID}")
-                                    },
-                                    onNavigateToExitNodes = { navController.navigate("exitNodes") },
-                                    onNavigateToHealth = { navController.navigate("health") },
-                                    onNavigateToSearch = {
-                                        viewModel.enableSearchAutoFocus()
-                                        navController.navigate("search")
-                                    },
-                                    onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
-                                    onNavigateToCustomControl = { navController.navigate("loginWithCustomControl") },
-                                    onNavigateToADBSetup = { navController.navigate("ADBSetup") },
-                                    onNavigateToDeviceInfo = { navController.navigate("deviceInfo") },
-                                    onUploadQR = { showQRScanFromHome = true },
-                                )
-                            val settingsNav =
-                                SettingsNav(
-                                    onNavigateToBugReport = { navController.navigate("bugReport") },
-                                    onNavigateToAbout = { navController.navigate("about") },
-                                    onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
-                                    onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
-                                    onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
-                                    onNavigateToSubnetRouting = { navController.navigate("subnetRouting") },
-                                    onNavigateToMDMSettings = { navController.navigate("mdmSettings") },
-                                    onNavigateToManagedBy = { navController.navigate("managedBy") },
-                                    onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
-                                    onNavigateToPermissions = { navController.navigate("permissions") },
-                                    onNavigateToAWGSettings = { navController.navigate("awgSettings") },
-                                    onBackToSettings = backTo("settings"),
-                                    onNavigateBackHome = backTo("main"),
-                                )
-                            val exitNodePickerNav =
-                                ExitNodePickerNav(
-                                    onNavigateBackHome = {
-                                        if (!navController.popBackStack(route = "main", inclusive = false)) {
-                                            navController.popBackStack()
-                                        }
-                                    },
-                                    onNavigateBackToExitNodes = backTo("exitNodes"),
-                                    onNavigateToMullvad = { navController.navigate("mullvad") },
-                                    onNavigateToMullvadInfo = { navController.navigate("mullvad_info") },
-                                    onNavigateBackToMullvad = backTo("mullvad"),
-                                    onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
-                                    onNavigateToRunAsExitNode = { navController.navigate("runExitNode") },
-                                )
-                            val userSwitcherNav =
-                                UserSwitcherNav(
-                                    backToSettings = backTo("settings"),
-                                    onNavigateHome = backTo("main"),
-                                )
-                            composable(
-                                "main",
-                                enterTransition = { fadeIn(animationSpec = tween(150)) },
-                            ) {
-                                MainView(
-                                    loginAtUrl = { _ -> },
-                                    navigation = mainViewNav,
-                                    viewModel = viewModel,
-                                    appViewModel = appViewModel,
-                                )
-                            }
-                            composable("search") {
-                                val autoFocus = viewModel.autoFocusSearch
-                                SearchView(
-                                    viewModel = viewModel,
-                                    navController = navController,
-                                    onNavigateBack = { navController.popBackStack() },
-                                    autoFocus = autoFocus,
-                                )
-                            }
-                            composable("settings") {
-                                SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
-                            }
-                            composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
-                            composable("health") { HealthView(backTo("main")) }
-                            composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
-                            composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
-                            composable(
-                                "mullvad/{countryCode}",
-                                arguments =
-                                    listOf(navArgument("countryCode") { type = NavType.StringType }),
-                            ) {
-                                MullvadExitNodePicker(
-                                    it.arguments!!.getString("countryCode")!!,
-                                    exitNodePickerNav,
-                                )
-                            }
-                            composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
-                            composable(
-                                "peerDetails/{nodeId}",
-                                arguments =
-                                    listOf(
-                                        navArgument("nodeId") {
-                                            type = NavType.StringType
-                                        },
-                                    ),
-                            ) {
-                                PeerDetails(
-                                    { navController.popBackStack() },
-                                    it.arguments?.getString("nodeId") ?: "",
-                                    PingViewModel(),
-                                )
-                            }
-                            composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
                             composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
-                            composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
-                            composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
                             composable("about") { AboutView(backTo("settings")) }
                             composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
-                            composable("awgSettings") { AWGSettingsView(backTo("settings")) }
-                            composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
-                            composable("permissions") {
-                                PermissionsView(
-                                    backTo("settings"),
-                                    { navController.navigate("taildropDir") },
-                                    { navController.navigate("notifications") },
-                                )
-                            }
-                            composable("taildropDir") {
-                                TaildropDirView(
-                                    backTo("permissions"),
-                                    directoryPickerLauncher,
-                                    permissionsViewModel,
-                                )
-                            }
                             composable("notifications") {
-                                NotificationsView(backTo("permissions"), ::openApplicationSettings)
-                            }
-                            composable("loginWithAuthKey") {
-                                LoginWithAuthKeyView(
-                                    onNavigateHome = backTo("main"),
-                                    backToSettings = backTo("main"),
-                                )
+                                NotificationsView(backTo("settings"), ::openApplicationSettings)
                             }
                             composable("onboarding") {
                                 MeshOnboarding(
-                                    pendingLink = hasPendingMeshIntent,
                                     onDone = {
                                         setIntroScreenViewed(true)
                                         navController.navigate("meshFlow") {
                                             popUpTo("onboarding") { inclusive = true }
-                                        }
-                                        val action = pendingMeshAction
-                                        pendingMeshAction = null
-                                        hasPendingMeshIntent = false
-                                        lifecycleScope.launch {
-                                            delay(400)
-                                            action?.invoke()
                                         }
                                     },
                                 )
@@ -542,60 +262,30 @@ class MainActivity : ComponentActivity() {
                             composable("ADBSetup") {
                                 ADBSetup(
                                     onNavigateHome = {
-                                        navController.navigate("main")
+                                        navController.navigate("meshFlow")
                                     },
                                 )
                             }
-                            // Redesigned client wired to live IPN state (some fields still sample values).
                             composable("meshFlow") {
                                 val ipnState by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
                                 val vpnActive by appViewModel.vpnActive.collectAsState(initial = false)
-                                val netmap by viewModel.netmap.collectAsState(initial = null)
-                                val prefs by viewModel.prefs.collectAsState(initial = null)
-                                // Map IPN state -> UI env once per backend change, not on every recomposition,
-                                // so MeshFlow's subtree can skip while a session streams netmap updates.
-                                val env = remember(ipnState, vpnActive, netmap, prefs, adbWifiEnabled) {
-                                    val peer = netmap?.Peers?.firstOrNull()
-                                    val analyst = peer?.let {
-                                        MeshDefaults.analyst.copy(
-                                            name = it.ComputedName ?: MeshDefaults.analyst.name,
-                                            ip = it.primaryIPv4Address ?: MeshDefaults.analyst.ip,
-                                        )
-                                    }
-                                    val exitNodeId = prefs?.activeExitNodeID ?: prefs?.selectedExitNodeID
-                                    val exitNodeName = exitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }?.exitNodeName
+                                // Build the UI env once per state change, not on every recomposition.
+                                val env = remember(ipnState, vpnActive, adbWifiEnabled) {
                                     MeshLiveEnv(
                                         connected = ipnState == Ipn.State.Running && vpnActive,
-                                        analyst = analyst,
-                                        controlUrl = prefs?.ControlURL,
-                                        exitNodeName = exitNodeName,
+                                        analyst = null,
                                         adbReady = adbWifiEnabled,
                                         onStartSession = { showQRScanFromHome = true },
-                                        onEndSession = { viewModel.toggleVpn(desiredState = false) },
-                                        onOpenExitNodes = { navController.navigate("exitNodes") },
-                                        onOpenControlServer = { navController.navigate("loginWithCustomControl") },
-                                        onOpenDns = { navController.navigate("dnsSettings") },
+                                        onEndSession = { viewModel.endSession() },
                                         onOpenSplitTunnel = { navController.navigate("splitTunneling") },
-                                        onOpenObfuscation = { navController.navigate("awgSettings") },
-                                        onForgetEnrollment = { viewModel.resetAuth { } },
                                     )
                                 }
                                 MeshFlow(env = env, onExit = { moveTaskToBack(true) })
                             }
-                            composable("loginWithCustomControl") {
-                                LoginWithCustomControlURLView(
-                                    onNavigateHome = backTo("main"),
-                                    backToSettings = backTo("main"),
-                                    onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
-                                )
-                            }
                             composable("deviceInfo") {
-                                DeviceInfoView(backTo("main"))
+                                DeviceInfoView(backTo("meshFlow"))
                             }
                         }
-                        // if (isIntroScreenViewedSet()) {
-                        // navController.navigate("intro")
-                        //  setIntroScreenViewed(true)
                     }
                 }
                 if (showPinDialog) {
@@ -615,11 +305,11 @@ class MainActivity : ComponentActivity() {
                     QRScanStep(
                         onScanned = { uri ->
                             showQRScanFromHome = false
-                            // MESHnet: a mesh:// link is the old encrypted provisioning
-                            // payload. Anything else is a MESHnet server address, paired
-                            // with the PIN shown on the analyst's screen.
+                            // A mesh:// link is the provisioning payload of the Tailscale-based
+                            // versions, which can no longer be used. Anything else is a MESHnet
+                            // server address, paired with the PIN shown on the authority node.
                             if (uri.startsWith("mesh://")) {
-                                processMeshUri(Uri.parse(uri))
+                                showUnsupportedLinkDialog()
                             } else {
                                 pinInput { pin ->
                                     // IPNService runs the session. It needs VPN
@@ -669,113 +359,13 @@ class MainActivity : ComponentActivity() {
         showPinDialog = true
     }
 
-    private fun attemptProvision(
-        pin: String,
-        salt: ByteArray,
-        iv: ByteArray,
-        cipherText: ByteArray,
-    ) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val jsonString = IntentCrypto.decrypt(pin, salt, iv, cipherText)
-                val json = JSONObject(jsonString)
-                val key = json.getString("key")
-                val url = json.getString("url")
-                // TODO: instantiate via ViewModelProvider(this) to tie viewModelScope to lifecycle after testing
-                val vm = LoginWithAuthKeyViewModel()
-                vm.loginWithCustomControlURL(url) { result ->
-                    result.onSuccess {
-                        vm.loginWithAuthKey(key) { authResult ->
-                            authResult.onSuccess {
-                                lifecycleScope.launch(Dispatchers.Main) {
-                                    viewModel.showVPNPermissionLauncherIfUnauthorized()
-                                }
-                            }
-                            authResult.onFailure {
-                                Log.e("MainActivity", "loginWithAuthKey failed: $it")
-                                lifecycleScope.launch(Dispatchers.Main) {
-                                    AlertDialog
-                                        .Builder(this@MainActivity)
-                                        .setMessage("Automatic setup failed, please enter your control URL and auth key manually")
-                                        .setPositiveButton("Ok", null)
-                                        .show()
-                                }
-                            }
-                        }
-                    }
-                    result.onFailure {
-                        Log.e("MainActivity", "loginWithCustomControlURL failed: $it")
-                        lifecycleScope.launch(Dispatchers.Main) {
-                            AlertDialog
-                                .Builder(this@MainActivity)
-                                .setMessage("Automatic setup failed, please enter your control URL and auth key manually")
-                                .setPositiveButton("Ok", null)
-                                .show()
-                        }
-                    }
-                }
-            } catch (e: IllegalArgumentException) {
-                Log.e("MainActivity", "Invalid PIN format: $e")
-                withContext(Dispatchers.Main) {
-                    AlertDialog
-                        .Builder(this@MainActivity)
-                        .setTitle("Invalid PIN")
-                        .setMessage("The PIN format is invalid. Please check the PIN and try again.")
-                        .setPositiveButton("Try again") { _, _ ->
-                            pinInput { newPin ->
-                                attemptProvision(newPin, salt, iv, cipherText)
-                            }
-                        }.setNegativeButton("Cancel", null)
-                        .show()
-                }
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Decryption failed, wrong pin?: $e")
-                withContext(Dispatchers.Main) {
-                    AlertDialog
-                        .Builder(this@MainActivity)
-                        .setTitle("Wrong PIN")
-                        .setMessage("Decryption failed, please try again")
-                        .setPositiveButton("Try again") { _, _ ->
-                            pinInput { newPin ->
-                                attemptProvision(newPin, salt, iv, cipherText)
-                            }
-                        }.setNegativeButton("Cancel", null)
-                        .show()
-                }
-            }
-        }
-    }
-
-    private fun processMeshUri(uri: Uri) {
-        val blob =
-            uri.getQueryParameter("d") ?: run {
-                Log.e("MainActivity", "mesh intent: missing payload")
-                return
-            }
-        val decodedBlob = try {
-            val decoded = Base64.decode(blob, Base64.URL_SAFE or Base64.NO_WRAP)
-            require(decoded.size >= 28) { "IntentURI blob incorrect size" }
-            decoded
-        } catch (e: Exception) {
-            Log.e("MainActivity", "mesh intent: malformed payload: $e")
-            AlertDialog
-                .Builder(this)
-                .setTitle("Invalid Link")
-                .setMessage("The MESH link appears to be malformed and cannot be processed.")
-                .setPositiveButton("Ok", null)
-                .show()
-            return
-        }
-        val salt = decodedBlob.copyOfRange(0, 16)
-        val iv = decodedBlob.copyOfRange(16, 28)
-        val cipherText = decodedBlob.copyOfRange(28, decodedBlob.size)
-        val action = { pinInput { pin -> attemptProvision(pin, salt, iv, cipherText) } }
-        if (!isIntroScreenViewedSet()) {
-            pendingMeshAction = action
-            hasPendingMeshIntent = true
-            return
-        }
-        action()
+    private fun showUnsupportedLinkDialog() {
+        AlertDialog
+            .Builder(this)
+            .setTitle("Unsupported code")
+            .setMessage("This code is from an older MESH setup and can no longer be used. Scan the code shown on the authority node.")
+            .setPositiveButton("Ok", null)
+            .show()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -785,10 +375,10 @@ class MainActivity : ComponentActivity() {
                 val previousEntry = navController.previousBackStackEntry
                 TSLog.d("MainActivity", "onNewIntent: previousBackStackEntry = $previousEntry")
                 if (previousEntry != null) {
-                    navController.popBackStack(route = "main", inclusive = false)
+                    navController.popBackStack(route = "meshFlow", inclusive = false)
                 } else {
-                    TSLog.e("MainActivity", "onNewIntent: No previous back stack entry, navigating directly to 'main'")
-                    navController.navigate("main") { popUpTo("main") { inclusive = true } }
+                    TSLog.e("MainActivity", "onNewIntent: No previous back stack entry, navigating directly to 'meshFlow'")
+                    navController.navigate("meshFlow") { popUpTo("meshFlow") { inclusive = true } }
                 }
             }
         }

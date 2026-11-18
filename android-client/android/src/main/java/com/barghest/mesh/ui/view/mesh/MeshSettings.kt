@@ -95,13 +95,7 @@ private fun Group(label: String, content: @Composable () -> Unit) {
 
 /** Live Settings wiring. */
 data class MeshSettingsLive(
-    val controlUrl: String?,
-    val onOpenControlServer: () -> Unit,
-    val onOpenExitNodes: () -> Unit,
-    val onOpenDns: () -> Unit,
     val onOpenSplitTunnel: () -> Unit,
-    val onOpenObfuscation: () -> Unit,
-    val onForgetEnrollment: () -> Unit,
 )
 
 @Composable
@@ -112,26 +106,13 @@ fun MeshSettingsScreen(onBack: () -> Unit, live: MeshSettingsLive) {
     Column(Modifier.fillMaxSize().background(cs.meshBg)) {
         MeshTopBar(stringResource(R.string.mesh_topbar_settings), onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Group(stringResource(R.string.mesh_set_group_connection)) {
-                SettingRow("globe", stringResource(R.string.mesh_set_control_server), live.controlUrl?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.mesh_set_not_configured), onClick = live.onOpenControlServer)
-                MeshDivider()
-                SettingRow("globe", stringResource(R.string.mesh_set_exit_node), stringResource(R.string.mesh_set_exit_node_sub), onClick = live.onOpenExitNodes)
-            }
             Group(stringResource(R.string.mesh_set_group_network)) {
-                SettingRow("globe", stringResource(R.string.mesh_set_magic_dns), stringResource(R.string.mesh_set_magic_dns_sub), onClick = live.onOpenDns)
-                MeshDivider()
                 SettingRow("grid", stringResource(R.string.mesh_set_split), stringResource(R.string.mesh_set_split_sub), onClick = live.onOpenSplitTunnel)
-            }
-            Group(stringResource(R.string.mesh_set_group_privacy)) {
-                SettingRow("eyeOff", stringResource(R.string.mesh_set_obfuscation), stringResource(R.string.mesh_set_obfuscation_sub), onClick = live.onOpenObfuscation)
             }
             Group(stringResource(R.string.mesh_set_group_about)) {
                 SettingRow("info", stringResource(R.string.mesh_set_version, AppVersion.Short()), stringResource(R.string.mesh_set_source), onClick = { uriHandler.openUri(Links.SOURCE_REPO_URL) })
                 MeshDivider()
                 SettingRow("file", stringResource(R.string.mesh_set_license), stringResource(R.string.mesh_set_license_sub), onClick = { uriHandler.openUri(Links.LICENSE_URL) })
-            }
-            Group(stringResource(R.string.mesh_set_group_danger)) {
-                SettingRow("x", stringResource(R.string.mesh_set_forget), stringResource(R.string.mesh_set_forget_sub), danger = true, onClick = live.onForgetEnrollment)
             }
             Text(stringResource(R.string.mesh_set_footer), color = cs.meshMuted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center)
         }

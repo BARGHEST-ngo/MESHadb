@@ -30,18 +30,11 @@ private enum class MeshScreen { Home, Learn, Adb, Settings }
 /** Live backend wiring for the redesigned MESH client. */
 data class MeshLiveEnv(
     val connected: Boolean,
-    val analyst: Analyst?,        // built from the netmap peer; null => placeholder
-    val controlUrl: String?,
-    val exitNodeName: String?,    // active exit node display name, or null = none
+    val analyst: Analyst?,        // null => placeholder; MESHnet does not supply an identity yet
     val adbReady: Boolean,
     val onStartSession: () -> Unit,
     val onEndSession: () -> Unit,
-    val onOpenExitNodes: () -> Unit,
-    val onOpenControlServer: () -> Unit,
-    val onOpenDns: () -> Unit,
     val onOpenSplitTunnel: () -> Unit,
-    val onOpenObfuscation: () -> Unit,
-    val onForgetEnrollment: () -> Unit,
 )
 
 /** Host for the redesigned MESH client; [onExit] fires when backing out of the root. */
@@ -72,19 +65,12 @@ fun MeshFlow(env: MeshLiveEnv, onExit: () -> Unit = {}) {
             onEnd = { endConfirm = true },
             onOpenSettings = { go(MeshScreen.Settings) },
             onOpenLearn = { go(MeshScreen.Learn) },
-            onOpenExitNodes = { env.onOpenExitNodes() },
             onOpenAdb = { go(MeshScreen.Adb) },
         )
     }
     val settingsLive = remember(env) {
         MeshSettingsLive(
-            controlUrl = env.controlUrl,
-            onOpenControlServer = env.onOpenControlServer,
-            onOpenExitNodes = env.onOpenExitNodes,
-            onOpenDns = env.onOpenDns,
             onOpenSplitTunnel = env.onOpenSplitTunnel,
-            onOpenObfuscation = env.onOpenObfuscation,
-            onForgetEnrollment = env.onForgetEnrollment,
         )
     }
 
@@ -99,7 +85,7 @@ fun MeshFlow(env: MeshLiveEnv, onExit: () -> Unit = {}) {
                 label = "meshScreen",
             ) { s ->
                 when (s) {
-                    MeshScreen.Home -> MeshHomeScreen(connected, homeActions, analyst = analyst, exitNodeName = env.exitNodeName, adbReady = env.adbReady)
+                    MeshScreen.Home -> MeshHomeScreen(connected, homeActions, analyst = analyst, adbReady = env.adbReady)
                     MeshScreen.Learn -> MeshLearnScreen(onBack = { go(MeshScreen.Home) }, onStart = { env.onStartSession() })
                     MeshScreen.Adb -> MeshAdbSetupScreen(
                         onBack = { go(MeshScreen.Home) },
