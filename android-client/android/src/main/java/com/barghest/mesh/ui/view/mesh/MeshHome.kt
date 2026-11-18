@@ -235,7 +235,8 @@ fun MeshHomeScreen(
                     )
                 }
             } else {
-                AnalystCard(analyst)
+                // Hidden until a real identity is available; MESHnet does not supply one yet.
+                if (analyst.name.isNotBlank()) AnalystCard(analyst)
                 ExitNodeCard(exitNodeName, actions.onOpenExitNodes)
                 MeshButton(stringResource(R.string.mesh_end_cta), actions.onEnd, full = true, height = 56.dp, icon = "power", variant = MeshButtonVariant.Danger)
             }

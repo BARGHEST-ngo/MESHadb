@@ -294,7 +294,7 @@ class MainActivity : ComponentActivity() {
 
             if (rooted) {
                 builder.setTitle("Device is rooted")
-                builder.setMessage("Please contact your helpline/investigator for next steps, if this is expected, please continue")
+                builder.setMessage("Rooted devices are less secure. If this is expected, please continue; otherwise check with whoever runs the authority node")
                 builder.show()
             }
 
@@ -880,7 +880,7 @@ private fun PinEntryDialog(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "Enter the 6-digit PIN your analyst read to you",
+                    text = "Enter the 6-digit PIN shown on the authority node",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontFamily = FontFamily.Monospace,
                     ),

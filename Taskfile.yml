@@ -6,23 +6,24 @@ version: '3'
 silent: true
 tasks:
   build:
-    desc: Build MESHforensics Docker containers
+    desc: Build MESH Docker containers
     cmds:
       - docker compose build
 
   down:
-    desc: Stop MESHforensics Docker containers
+    desc: Stop MESH Docker containers
     cmds:
       - |
         docker compose down
-        printf "\033[1;32mMESHforensics analyst stopped.\033[0m\n"
+        printf "\033[1;32mMESH authority node stopped.\033[0m\n"
 
-  analyst:
-    desc: Start the MESHforensics analyst CLI
+  node:
+    desc: Start the MESH authority node CLI
+    aliases: [analyst]
     cmds:
       - docker compose run --rm --build --name mesh-analyst analyst
 
   shell:
-    desc: Open a shell in the running analyst e.g. for tcpdump
+    desc: Open a shell in the running authority node e.g. for tcpdump
     cmds:
       - docker exec -it --user mesh mesh-analyst bash
