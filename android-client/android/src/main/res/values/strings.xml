@@ -455,7 +455,7 @@
     <string name="mesh_quiz_adb">Leaving ADB enabled when not in use can increase security risks if your device is accessed by an untrusted party.</string>
     <string name="mesh_warn_consent">Remote ADB access can reach sensitive information. Only connect to authority nodes you trust, and agree in advance on what they will do.</string>
     <string name="mesh_warn_adb">If ADB remains enabled, it may be misused by anyone with physical or network access to your device. Disable ADB immediately after a session.</string>
-    <string name="mesh_onb_welcome_eyebrow">Remote ADB, with your consent</string>
+    <string name="mesh_onb_welcome_eyebrow">Remote ADB, over the internet</string>
     <string name="mesh_onb_welcome_body">MESH lets an authority node you trust connect to your phone, the peer node, with ADB over the internet — only when you say so, and only for as long as you allow.</string>
     <string name="mesh_onb_welcome_tag">Open-source · independently audited</string>
     <string name="mesh_onb_how_eyebrow">How it works</string>
