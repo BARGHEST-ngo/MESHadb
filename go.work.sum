@@ -45,6 +45,8 @@ github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2/go.mod h1:XtLgD3ZD34DAaVI
 github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.5.0/go.mod h1:PXe2h+LKcWTX9afWdZoHyODqR4fBa5boUM/8uJfZ0Jo=
 github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0/go.mod h1:HKpQxkWaGLJ+D/5H8QRpyQXA1eKjxkFlOMwck5+33Jk=
+github.com/BARGHEST-ngo/MESHnet v0.2.0-alpha h1:yDSNMms8h1gMKSs6Xbe765X87e8RMd3tW82abgHKE54=
+github.com/BARGHEST-ngo/MESHnet v0.2.0-alpha/go.mod h1:kLTrVoooI3n879kILydPtjlDfHnpz3QEva20aZV3304=
 github.com/BARGHEST-ngo/androidqf_mesh v0.3.0 h1:UHavTkLJ4Bed8sxe/n1rHIPqS53wWGK4nG57P9Ztt3M=
 github.com/BARGHEST-ngo/androidqf_mesh v0.3.0/go.mod h1:z4lxoDF0bdjKCjBfrVbnMf1LIfQpwRuhCNmB+9VI1Kg=
 github.com/BARGHEST-ngo/mesh-tailscale v1.94.2-0.20260512151315-5e37e12167e6 h1:xYtiTSCZwf/uiC7CMYlXlL8+wlcvLUGuWZvFVFKOruA=
