@@ -28,8 +28,9 @@ tasks:
     desc: Serve documentation
     cmd: mkdocs serve
 
-  buildAnalyst:
-    desc: Build MESH analyst client for local development
+  buildNode:
+    desc: Build MESH authority node for local development
+    aliases: [buildAnalyst]
     cmd: ./analyst/src/build.sh
 
   buildAndroid:
