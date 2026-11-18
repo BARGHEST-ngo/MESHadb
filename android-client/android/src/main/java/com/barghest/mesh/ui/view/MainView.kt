@@ -601,7 +601,7 @@ fun ConnectView(
                 } else {
                     Spacer(modifier = Modifier.size(1.dp))
                     Text(
-                        text = "To connect to your forensic MESH session",
+                        text = "To connect to your MESH session",
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center
                     )

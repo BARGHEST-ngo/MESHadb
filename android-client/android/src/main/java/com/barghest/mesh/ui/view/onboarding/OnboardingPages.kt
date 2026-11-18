@@ -53,10 +53,10 @@ internal fun WelcomePage() {
         Spacer(Modifier.height(24.dp))
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "MESH is a secure, peer-to-peer networking tool that enables " +
-                    "consensual Android device analysis. It is designed for digital " +
-                    "forensics analysts and human rights investigators working directly " +
-                    "with device owners.\n\n" +
+            text = "MESH is a secure, peer-to-peer tool for using ADB with an " +
+                    "Android device over the internet. It is designed for people " +
+                    "who need hands-on access to a phone that is somewhere else, " +
+                    "with the owner's consent.\n\n" +
                     "MESH is developed by the civil society group BARGHEST. " +
                     "It is fully open-source and independently audited.",
             style = MaterialTheme.typography.bodyLarge.copy(
@@ -87,7 +87,7 @@ internal fun HowItWorksPage() {
         Spacer(Modifier.height(8.dp))
         Text(
             text = "MESH establishes a private, encrypted connection between " +
-                    "your device and a trusted analyst for the duration of a session.",
+                    "your device and an authority node you trust for the duration of a session.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -118,24 +118,24 @@ internal fun ConsentPage() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "When you enable ADB access, a trusted analyst can assist " +
-                    "with examining your device. Before proceeding, you should " +
-                    "discuss and agree on what data will be accessed.\n\n" +
-                    "With your consent, an analyst may:",
+            text = "When you enable ADB access, the authority node can work " +
+                    "on your device remotely. Before proceeding, you should " +
+                    "discuss and agree on what they will do.\n\n" +
+                    "With your consent, they may:",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(24.dp))
-        BulletItem("Review selected files, application data, and system logs with you")
-        BulletItem("Create a backup of installed applications")
-        BulletItem("Install investigative tools required for the session")
-        BulletItem("Run diagnostic commands on your device")
+        BulletItem("Read files, application data, and system logs")
+        BulletItem("Install, update, back up or remove applications")
+        BulletItem("Change settings on your device")
+        BulletItem("Run commands on your device")
         Spacer(Modifier.height(24.dp))
         Text(
             text = "You decide when ADB is enabled or disabled. " +
                     "ADB access should remain off except during an agreed " +
-                    "and active investigation session.",
+                    "and active session.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

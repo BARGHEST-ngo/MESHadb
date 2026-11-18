@@ -130,7 +130,7 @@ fun OnboardingScreen(
 
     if (showPendingIntentNotice) {
         WarningDialog(
-            message = "Your analyst has sent you a secure setup link. " +
+            message = "The authority node has sent you a secure setup link. " +
                 "Complete onboarding and you will be prompted to enter a PIN to automatically join the network.",
             onDismiss = { showPendingIntentNotice = false }
         )
@@ -139,8 +139,8 @@ fun OnboardingScreen(
     if (showQuiz) {
         val (title, question) = when (activeQuiz) {
             1 -> "Pop quiz!" to
-                    "Consensual forensics may involve granting access " +
-                    "to sensitive data on your device."
+                    "Remote ADB access can expose " +
+                    "sensitive data on your device."
             2 -> "Pop quiz!" to
                     "Leaving ADB enabled when not in use can increase " +
                     "security risks if your device is accessed by an untrusted party."
@@ -162,9 +162,9 @@ fun OnboardingScreen(
                     }
                 } else {
                     warningMessage = when (activeQuiz) {
-                        1 -> "Consensual forensics can involve access to sensitive " +
-                                "information. Only proceed with analysts you trust, " +
-                                "and agree in advance on the scope of access."
+                        1 -> "Remote ADB access can reach sensitive " +
+                                "information. Only connect to authority nodes you trust, " +
+                                "and agree in advance on what they will do."
                         2 -> "If ADB remains enabled, it may be misused by anyone " +
                                 "with physical or network access to your device. " +
                                 "Disable ADB immediately after a session."
@@ -325,7 +325,7 @@ fun QRScanStep(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "Scan the QR code your analyst sent you to join the network automatically.",
+                    text = "Scan the QR code from the authority node to join the network automatically.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontFamily = MeshMono,
                     ),

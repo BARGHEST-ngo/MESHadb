@@ -11,7 +11,7 @@
 package com.barghest.mesh.ui
 
 object Links {
-  const val DEFAULT_CONTROL_URL = "Please contact your MESH analyst"
+  const val DEFAULT_CONTROL_URL = "Please contact whoever runs your authority node"
   const val SERVER_URL = ""
   const val ADMIN_URL = SERVER_URL + "/admin"
   const val SIGNIN_URL = ""
