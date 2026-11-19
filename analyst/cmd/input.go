@@ -4,7 +4,9 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,20 +16,41 @@ import (
 	"golang.org/x/term"
 )
 
+var ErrInterrupted = errors.New("interrupted")
+
+type ctrlCReader struct {
+	r           io.Reader
+	interrupted bool
+}
+
+func (c *ctrlCReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	// 3 = Ctrl+C
+	if i := bytes.IndexByte(p[:n], 3); i >= 0 {
+		p[i] = '\r'
+		n = i + 1
+		c.interrupted = true
+	}
+	return n, err
+}
+
 type Input struct {
 	t  *term.Terminal
 	fd int
+	r  *ctrlCReader
 }
 
 func NewInput(r io.Reader) *Input {
+	cr := &ctrlCReader{r: os.Stdin}
 	rw := struct {
 		io.Reader
 		io.Writer
-	}{os.Stdin, os.Stdout}
+	}{cr, os.Stdout}
 
 	return &Input{
 		t:  term.NewTerminal(rw, ""),
 		fd: int(os.Stdin.Fd()),
+		r:  cr,
 	}
 }
 
@@ -43,6 +66,10 @@ func (in *Input) ReadLine(ctx context.Context, msg string) (string, error) {
 		defer term.Restore(in.fd, old)
 	}
 	line, err := in.t.ReadLine()
+	if in.r.interrupted {
+		in.r.interrupted = false
+		return "", ErrInterrupted
+	}
 	return strings.TrimSpace(line), err
 }
 
