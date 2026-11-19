@@ -103,6 +103,12 @@ func commands(s *session.Session, in *cmd.Input) *ffcli.Command {
 		fmt.Println(ffcli.DefaultUsageFunc(root))
 		return nil
 	}
+
+	for _, c := range root.Subcommands {
+		if c.FlagSet == nil {
+			c.FlagSet = flag.NewFlagSet(c.Name, flag.ContinueOnError)
+		}
+	}
 	return root
 }
 
