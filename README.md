@@ -163,7 +163,8 @@ meshcli> forward on
 
 `forward on` makes your machine the device's exit node: its TCP and UDP traffic travels through the encrypted tunnel and reaches the internet from your network. `forward off` returns it to its own connection. This gives you two things:
 
-- **Capture**: the device's traffic passes through your machine, where you can record and inspect it. `tcpdump` and Suricata ship in the image; open `task shell` to run them.
+- **Capture**: the device's traffic passes through your machine, where you can record and inspect it. `tcpdump` and Suricata ship in the image; open `task shell` to run them.  
+Alternatively run `capture start` to save pcap data to the device's acquisition directory
 - **Circumvention**: a device on a censored or hostile network reaches the internet from your location. The local network sees only the tunnel, which falls back to HTTPS when UDP is blocked.
 
 **After the session**
