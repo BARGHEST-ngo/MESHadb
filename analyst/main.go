@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -22,8 +23,9 @@ import (
 func main() {
 	setAndroidQFVersion()
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
+	// Each command gets its own interrupt context (runCommand)
+	// Catch Ctrl+C so it can't kill the analyst and drop every connected device
+	signal.Notify(make(chan os.Signal, 1), os.Interrupt)
 
 	in := cmd.NewInput(os.Stdin)
 	s := session.New(in.Output())
@@ -43,10 +45,14 @@ func main() {
 	fmt.Printf("MESH address: %s\n\nRun 'pin' to pair a device\n", addr)
 
 	for {
-		line, err := in.ReadLine(ctx, "meshcli> ")
-		if err != nil {
-			return // Ctrl-C or end of input
+		line, err := in.ReadLine(context.Background(), "meshcli> ")
+		switch {
+		case errors.Is(err, cmd.ErrInterrupted):
+			continue // Ctrl-C at the prompt: new prompt, like a shell
+		case err != nil:
+			return // Ctrl-D or end of input
 		}
+
 		args := strings.Fields(line)
 		switch {
 		case len(args) == 0:
@@ -54,10 +60,22 @@ func main() {
 		case args[0] == "quit" || args[0] == "exit":
 			return
 		}
-		if err := commands(s, in).ParseAndRun(ctx, args); err != nil && err != flag.ErrHelp {
+
+		err = runCommand(s, in, args)
+		switch {
+		case err == nil, errors.Is(err, flag.ErrHelp):
+		case errors.Is(err, cmd.ErrInterrupted), errors.Is(err, context.Canceled):
+			fmt.Fprintln(os.Stderr, "cancelled")
+		default:
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		}
 	}
+}
+
+func runCommand(s *session.Session, in *cmd.Input, args []string) error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	return commands(s, in).ParseAndRun(ctx, args)
 }
 
 func commands(s *session.Session, in *cmd.Input) *ffcli.Command {
