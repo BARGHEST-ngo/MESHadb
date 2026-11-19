@@ -90,6 +90,7 @@ When you are done, run `disconnect` in the CLI, or `task down` to stop everythin
 | `adbpair` | Pair and connect to a device's wireless debugging |
 | `status` | Show the session and its connected devices |
 | `forward on\|off` | Send a device's internet traffic through your machine |
+| `capture start\stop` | Record a device's forwarded traffic to a pcap file |
 | `disconnect` | End a device's session |
 | `adbcollect` | Run a forensic acquisition (see [Forensics](#forensics-censorship-circumvention-and-security-research)) |
 | `adbdisable` | Turn off developer mode on the device |
