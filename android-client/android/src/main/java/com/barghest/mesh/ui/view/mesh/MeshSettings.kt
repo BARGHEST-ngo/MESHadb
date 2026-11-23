@@ -87,7 +87,7 @@ private fun Group(label: String, content: @Composable () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Column(Modifier.padding(bottom = 18.dp)) {
         Eyebrow(label, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
-        Column(Modifier.fillMaxWidth().background(cs.meshCard, RoundedCornerShape(MeshRadii.card)).border(1.dp, cs.meshBorder, RoundedCornerShape(MeshRadii.card))) {
+        Column(Modifier.fillMaxWidth().background(cs.meshCard, RoundedCornerShape(MeshRadii.card))) {
             content()
         }
     }

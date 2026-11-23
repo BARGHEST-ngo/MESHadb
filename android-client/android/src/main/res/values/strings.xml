@@ -484,12 +484,6 @@
     <string name="mesh_end_cta">End session</string>
     <string name="mesh_analyst_label">Connected to</string>
     <string name="mesh_analyst_placeholder">Authority node</string>
-    <string name="mesh_tile_encrypted_title">Encrypted</string>
-    <string name="mesh_tile_encrypted_sub">WireGuard E2E</string>
-    <string name="mesh_tile_notrack_title">No tracking</string>
-    <string name="mesh_tile_notrack_sub">Zero data kept</string>
-    <string name="mesh_tile_control_title">Your control</string>
-    <string name="mesh_tile_control_sub">End anytime</string>
     <string name="mesh_learn_card_title">How a session works</string>
     <string name="mesh_learn_card_sub">What the authority node can and can\'t do</string>
     <string name="mesh_exit_node">Exit node</string>
@@ -543,22 +537,16 @@
 
     <!-- ADB setup -->
     <string name="mesh_adb_topbar">Wireless debugging</string>
-    <string name="mesh_adb_title">Let the authority node connect over Wi-Fi</string>
-    <string name="mesh_adb_intro">This is an Android feature called wireless debugging. Follow these steps once — you can turn it off again as soon as you\'re done.</string>
-    <string name="mesh_adb_callout_menus">Menu names differ slightly across phones (e.g. \"About phone\" → \"Software information\"). The steps are the same.</string>
-    <string name="mesh_adb_callout_warn">Only keep wireless debugging on while you\'re connected to the authority node. Turn it off afterwards.</string>
+    <string name="mesh_adb_title">Turn on wireless debugging</string>
+    <string name="mesh_adb_intro">A one-time Android setup so the authority node can connect over Wi-Fi. Turn it off again when your session ends.</string>
     <string name="mesh_adb_open_settings">Open settings</string>
     <string name="mesh_adb_its_on">It\'s on</string>
-    <string name="mesh_adb_s1_title">Open system Settings</string>
-    <string name="mesh_adb_s1_body">Go to Settings → About phone → Software information.</string>
-    <string name="mesh_adb_s2_title">Enable Developer options</string>
-    <string name="mesh_adb_s2_body">Find \"Build number\" and tap it 7 times. Enter your PIN if asked.</string>
+    <string name="mesh_adb_s1_title">Open Settings → About phone</string>
+    <string name="mesh_adb_s2_title">Tap \"Build number\" 7 times</string>
+    <string name="mesh_adb_s2_body">Enter your PIN if asked.</string>
     <string name="mesh_adb_s3_title">Open Developer options</string>
-    <string name="mesh_adb_s3_body">Use the button below to jump there, or find it under Settings → System.</string>
-    <string name="mesh_adb_s4_title">Turn on Wireless debugging</string>
-    <string name="mesh_adb_s4_body">Inside Developer options, switch on \"Wireless debugging\".</string>
-    <string name="mesh_adb_s5_title">Come back here</string>
-    <string name="mesh_adb_s5_body">Return to MESH and continue your session setup.</string>
+    <string name="mesh_adb_s3_body">Under Settings → System, or use the button below.</string>
+    <string name="mesh_adb_s4_title">Switch on \"Wireless debugging\"</string>
     <string name="mesh_adb_toast_need_r">Wireless debugging requires Android 11 or higher</string>
     <string name="mesh_adb_toast_navigate">Navigate to System → Developer options → Wireless debugging</string>
     <string name="mesh_adb_toast_unable">Unable to open settings. Please enable Wireless debugging manually.</string>

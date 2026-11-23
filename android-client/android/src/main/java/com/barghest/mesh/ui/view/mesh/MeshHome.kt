@@ -189,13 +189,12 @@ fun MeshHomeScreen(
                     .meshCard(
                         RoundedCornerShape(999.dp),
                         if (connected) cs.meshGreenDim else cs.meshCard,
-                        if (connected) cs.meshGreen.copy(alpha = 0.4f) else cs.meshBorder,
                     )
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                StatusDot(if (connected) cs.meshGreen else cs.meshMuted, size = 8.dp, pulse = connected)
+                StatusDot(if (connected) cs.meshGreen else cs.meshMuted, size = 8.dp)
                 Text(
                     if (connected) stringResource(R.string.mesh_status_connected_enc) else stringResource(R.string.mesh_status_not_connected),
                     color = if (connected) cs.meshGreen else cs.meshText2,
@@ -220,16 +219,11 @@ fun MeshHomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (!connected) {
-                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                    InfoTile(Modifier.weight(1f), "lock", stringResource(R.string.mesh_tile_encrypted_title), stringResource(R.string.mesh_tile_encrypted_sub))
-                    InfoTile(Modifier.weight(1f), "eyeOff", stringResource(R.string.mesh_tile_notrack_title), stringResource(R.string.mesh_tile_notrack_sub))
-                    InfoTile(Modifier.weight(1f), "power", stringResource(R.string.mesh_tile_control_title), stringResource(R.string.mesh_tile_control_sub))
-                }
                 MeshButton(stringResource(R.string.mesh_start_cta), actions.onStart, full = true, height = 56.dp, icon = "shield")
                 AdbCard(adbReady, actions.onOpenAdb)
                 MeshCard(onClick = actions.onOpenLearn) {
                     MeshRow(
-                        icon = "info",
+                        icon = null,
                         title = stringResource(R.string.mesh_learn_card_title),
                         sub = stringResource(R.string.mesh_learn_card_sub),
                     )
@@ -244,7 +238,7 @@ fun MeshHomeScreen(
     }
 }
 
-/** Analyst identity card — name and mesh IP. */
+/** Analyst identity card: who is on the other end, and their mesh address. */
 @Composable
 private fun AnalystCard(a: Analyst) {
     val cs = MaterialTheme.colorScheme
@@ -254,15 +248,16 @@ private fun AnalystCard(a: Analyst) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(cs.accentDim(0.16f)), contentAlignment = Alignment.Center) {
-                MeshIcon("user", size = 24.dp, color = cs.accent)
-            }
             Column(Modifier.weight(1f)) {
-                Eyebrow(stringResource(R.string.mesh_analyst_label), color = cs.accent)
+                Eyebrow(stringResource(R.string.mesh_analyst_label))
                 Spacer(Modifier.height(4.dp))
-                Text(a.name.ifBlank { stringResource(R.string.mesh_analyst_placeholder) }, color = cs.meshText, fontSize = 15.5.sp, fontWeight = FontWeight.SemiBold)
-                MonoText(a.ip, color = cs.meshText2, fontSize = 12.sp)
+                Text(
+                    a.name.ifBlank { stringResource(R.string.mesh_analyst_placeholder) },
+                    color = cs.meshText, fontSize = 17.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
             }
+            MonoText(a.ip, color = cs.meshText, fontSize = 14.sp)
         }
     }
 }
@@ -272,43 +267,24 @@ private fun AnalystCard(a: Analyst) {
 private fun ExitNodeCard(name: String?, onOpen: () -> Unit) {
     MeshCard(onClick = onOpen, pad = 14.dp) {
         MeshRow(
-            icon = "globe",
+            icon = null,
             title = stringResource(R.string.mesh_exit_node),
             sub = name ?: stringResource(R.string.mesh_exit_node_none),
         )
     }
 }
 
-/** Wireless-debugging (ADB) prerequisite card with readiness state. */
+/** Wireless-debugging (ADB) prerequisite card; the icon is amber while it still needs doing. */
 @Composable
 private fun AdbCard(ready: Boolean, onOpen: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    MeshCard(
-        onClick = onOpen,
-        pad = 14.dp,
-        border = if (ready) cs.meshGreen.copy(alpha = 0.4f) else cs.meshBorder,
-    ) {
+    MeshCard(onClick = onOpen, pad = 14.dp) {
         MeshRow(
             icon = if (ready) "check" else "wifi",
             title = if (ready) stringResource(R.string.mesh_adb_on_title) else stringResource(R.string.mesh_adb_off_title),
             sub = if (ready) stringResource(R.string.mesh_adb_on_sub) else stringResource(R.string.mesh_adb_off_sub),
             iconTint = if (ready) cs.meshGreen else cs.meshAmber,
-            iconBg = if (ready) cs.meshGreenDim else cs.meshAmberDim,
+            iconBg = null,
         )
     }
 }
-
-@Composable
-private fun InfoTile(modifier: Modifier, icon: String, title: String, sub: String) {
-    val cs = MaterialTheme.colorScheme
-    Column(
-        modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        MeshIcon(icon, size = 18.dp, color = cs.meshText2)
-        Spacer(Modifier.height(7.dp))
-        Text(title, color = cs.meshText, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-        Text(sub, color = cs.meshMuted, fontSize = 11.sp, textAlign = TextAlign.Center)
-    }
-}
-
