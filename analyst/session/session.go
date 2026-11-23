@@ -23,8 +23,9 @@ import (
 )
 
 type Session struct {
-	srv *meshnet.Server
-	out io.Writer
+	srv  *meshnet.Server
+	out  io.Writer
+	addr string
 
 	mu      sync.Mutex
 	devices map[string]*device
@@ -57,7 +58,12 @@ func New(out io.Writer) *Session {
 }
 
 func (s *Session) Start() (string, error) {
-	return s.srv.Start()
+	addr, err := s.srv.Start()
+	if err != nil {
+		return "", err
+	}
+	s.addr = addr
+	return addr, nil
 }
 
 func (s *Session) Stop() error {
@@ -71,6 +77,10 @@ func (s *Session) NewPairing() (string, error) {
 
 func (s *Session) PairingPIN() string {
 	return s.srv.PairingPIN()
+}
+
+func (s *Session) Address() string {
+	return s.addr
 }
 
 func (s *Session) Clients() []meshnet.ClientInfo {
