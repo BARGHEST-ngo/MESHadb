@@ -100,20 +100,15 @@ import com.barghest.mesh.ui.view.mesh.MeshOnboarding
 import com.barghest.mesh.ui.view.mesh.MeshDefaults
 import com.barghest.mesh.ui.view.AboutView
 import com.barghest.mesh.ui.view.DeviceInfoView
-import com.barghest.mesh.ui.view.ExitNodePicker
 import com.barghest.mesh.ui.view.HealthView
 import com.barghest.mesh.ui.view.LoginWithAuthKeyView
 import com.barghest.mesh.ui.view.MDMSettingsDebugView
 import com.barghest.mesh.ui.view.MainView
 import com.barghest.mesh.ui.view.MainViewNavigation
-import com.barghest.mesh.ui.view.MullvadExitNodePicker
-import com.barghest.mesh.ui.view.MullvadExitNodePickerList
-import com.barghest.mesh.ui.view.MullvadInfoView
 import com.barghest.mesh.ui.view.NotificationsView
 import com.barghest.mesh.ui.view.PeerDetails
 import com.barghest.mesh.ui.view.PermissionsView
 import com.barghest.mesh.ui.view.PrimaryActionButton
-import com.barghest.mesh.ui.view.RunExitNodeView
 import com.barghest.mesh.ui.view.SearchView
 import com.barghest.mesh.ui.view.SettingsView
 import com.barghest.mesh.ui.view.SplitTunnelAppPickerView
@@ -126,7 +121,6 @@ import com.barghest.mesh.ui.view.UserSwitcherView
 import com.barghest.mesh.ui.view.onboarding.OnboardingScreen
 import com.barghest.mesh.ui.view.onboarding.QRScanStep
 import com.barghest.mesh.ui.viewModel.AppViewModel
-import com.barghest.mesh.ui.viewModel.ExitNodePickerNav
 import com.barghest.mesh.ui.viewModel.LoginWithAuthKeyViewModel
 import com.barghest.mesh.ui.viewModel.MainViewModel
 import com.barghest.mesh.ui.viewModel.MainViewModelFactory
@@ -387,7 +381,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToPeerDetails = {
                                         navController.navigate("peerDetails/${it.StableID}")
                                     },
-                                    onNavigateToExitNodes = { navController.navigate("exitNodes") },
                                     onNavigateToHealth = { navController.navigate("health") },
                                     onNavigateToSearch = {
                                         viewModel.enableSearchAutoFocus()
@@ -411,20 +404,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToPermissions = { navController.navigate("permissions") },
                                     onBackToSettings = backTo("settings"),
                                     onNavigateBackHome = backTo("main"),
-                                )
-                            val exitNodePickerNav =
-                                ExitNodePickerNav(
-                                    onNavigateBackHome = {
-                                        if (!navController.popBackStack(route = "main", inclusive = false)) {
-                                            navController.popBackStack()
-                                        }
-                                    },
-                                    onNavigateBackToExitNodes = backTo("exitNodes"),
-                                    onNavigateToMullvad = { navController.navigate("mullvad") },
-                                    onNavigateToMullvadInfo = { navController.navigate("mullvad_info") },
-                                    onNavigateBackToMullvad = backTo("mullvad"),
-                                    onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
-                                    onNavigateToRunAsExitNode = { navController.navigate("runExitNode") },
                                 )
                             val userSwitcherNav =
                                 UserSwitcherNav(
@@ -454,21 +433,7 @@ class MainActivity : ComponentActivity() {
                             composable("settings") {
                                 SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
                             }
-                            composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                             composable("health") { HealthView(backTo("main")) }
-                            composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
-                            composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
-                            composable(
-                                "mullvad/{countryCode}",
-                                arguments =
-                                    listOf(navArgument("countryCode") { type = NavType.StringType }),
-                            ) {
-                                MullvadExitNodePicker(
-                                    it.arguments!!.getString("countryCode")!!,
-                                    exitNodePickerNav,
-                                )
-                            }
-                            composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
                             composable(
                                 "peerDetails/{nodeId}",
                                 arguments =
@@ -543,10 +508,9 @@ class MainActivity : ComponentActivity() {
                                 val ipnState by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
                                 val vpnActive by appViewModel.vpnActive.collectAsState(initial = false)
                                 val netmap by viewModel.netmap.collectAsState(initial = null)
-                                val prefs by viewModel.prefs.collectAsState(initial = null)
                                 // Map IPN state -> UI env once per backend change, not on every recomposition,
                                 // so MeshFlow's subtree can skip while a session streams netmap updates.
-                                val env = remember(ipnState, vpnActive, netmap, prefs, adbWifiEnabled) {
+                                val env = remember(ipnState, vpnActive, netmap, adbWifiEnabled) {
                                     val peer = netmap?.Peers?.firstOrNull()
                                     val analyst = peer?.let {
                                         MeshDefaults.analyst.copy(
@@ -554,16 +518,12 @@ class MainActivity : ComponentActivity() {
                                             ip = it.primaryIPv4Address ?: MeshDefaults.analyst.ip,
                                         )
                                     }
-                                    val exitNodeId = prefs?.activeExitNodeID ?: prefs?.selectedExitNodeID
-                                    val exitNodeName = exitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }?.exitNodeName
                                     MeshLiveEnv(
                                         connected = ipnState == Ipn.State.Running && vpnActive,
                                         analyst = analyst,
-                                        exitNodeName = exitNodeName,
                                         adbReady = adbWifiEnabled,
                                         onStartSession = { showQRScanFromHome = true },
                                         onEndSession = { viewModel.toggleVpn(desiredState = false) },
-                                        onOpenExitNodes = { navController.navigate("exitNodes") },
                                         onOpenSplitTunnel = { navController.navigate("splitTunneling") },
                                     )
                                 }

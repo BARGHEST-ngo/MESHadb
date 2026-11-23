@@ -138,7 +138,6 @@ data class MeshHomeActions(
     val onEnd: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenLearn: () -> Unit,
-    val onOpenExitNodes: () -> Unit,
     val onOpenAdb: () -> Unit,
 )
 
@@ -147,7 +146,6 @@ fun MeshHomeScreen(
     connected: Boolean,
     actions: MeshHomeActions,
     analyst: Analyst = MeshDefaults.analyst,
-    exitNodeName: String? = null,
     adbReady: Boolean = false,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -231,7 +229,6 @@ fun MeshHomeScreen(
             } else {
                 // Hidden until a real identity is available; MESHnet does not supply one yet.
                 if (analyst.name.isNotBlank()) AnalystCard(analyst)
-                ExitNodeCard(exitNodeName, actions.onOpenExitNodes)
                 MeshButton(stringResource(R.string.mesh_end_cta), actions.onEnd, full = true, height = 56.dp, icon = "power", variant = MeshButtonVariant.Danger)
             }
         }
@@ -259,18 +256,6 @@ private fun AnalystCard(a: Analyst) {
             }
             MonoText(a.ip, color = cs.meshText, fontSize = 14.sp)
         }
-    }
-}
-
-/** Exit-node selector — taps through to the existing picker. */
-@Composable
-private fun ExitNodeCard(name: String?, onOpen: () -> Unit) {
-    MeshCard(onClick = onOpen, pad = 14.dp) {
-        MeshRow(
-            icon = null,
-            title = stringResource(R.string.mesh_exit_node),
-            sub = name ?: stringResource(R.string.mesh_exit_node_none),
-        )
     }
 }
 

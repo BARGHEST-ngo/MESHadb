@@ -31,11 +31,9 @@ private enum class MeshScreen { Home, Learn, Adb, Settings }
 data class MeshLiveEnv(
     val connected: Boolean,
     val analyst: Analyst?,        // built from the netmap peer; null => placeholder
-    val exitNodeName: String?,    // active exit node display name, or null = none
     val adbReady: Boolean,
     val onStartSession: () -> Unit,
     val onEndSession: () -> Unit,
-    val onOpenExitNodes: () -> Unit,
     val onOpenSplitTunnel: () -> Unit,
 )
 
@@ -67,13 +65,11 @@ fun MeshFlow(env: MeshLiveEnv, onExit: () -> Unit = {}) {
             onEnd = { endConfirm = true },
             onOpenSettings = { go(MeshScreen.Settings) },
             onOpenLearn = { go(MeshScreen.Learn) },
-            onOpenExitNodes = { env.onOpenExitNodes() },
             onOpenAdb = { go(MeshScreen.Adb) },
         )
     }
     val settingsLive = remember(env) {
         MeshSettingsLive(
-            onOpenExitNodes = env.onOpenExitNodes,
             onOpenSplitTunnel = env.onOpenSplitTunnel,
         )
     }
@@ -89,7 +85,7 @@ fun MeshFlow(env: MeshLiveEnv, onExit: () -> Unit = {}) {
                 label = "meshScreen",
             ) { s ->
                 when (s) {
-                    MeshScreen.Home -> MeshHomeScreen(connected, homeActions, analyst = analyst, exitNodeName = env.exitNodeName, adbReady = env.adbReady)
+                    MeshScreen.Home -> MeshHomeScreen(connected, homeActions, analyst = analyst, adbReady = env.adbReady)
                     MeshScreen.Learn -> MeshLearnScreen(onBack = { go(MeshScreen.Home) }, onStart = { env.onStartSession() })
                     MeshScreen.Adb -> MeshAdbSetupScreen(
                         onBack = { go(MeshScreen.Home) },

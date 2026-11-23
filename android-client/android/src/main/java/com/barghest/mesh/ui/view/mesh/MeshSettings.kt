@@ -92,7 +92,6 @@ private fun Group(label: String, content: @Composable () -> Unit) {
 
 /** Live Settings wiring. */
 data class MeshSettingsLive(
-    val onOpenExitNodes: () -> Unit,
     val onOpenSplitTunnel: () -> Unit,
 )
 
@@ -104,9 +103,6 @@ fun MeshSettingsScreen(onBack: () -> Unit, live: MeshSettingsLive) {
     Column(Modifier.fillMaxSize().background(cs.meshBg)) {
         MeshTopBar(stringResource(R.string.mesh_topbar_settings), onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Group(stringResource(R.string.mesh_set_group_connection)) {
-                SettingRow("globe", stringResource(R.string.mesh_set_exit_node), stringResource(R.string.mesh_set_exit_node_sub), onClick = live.onOpenExitNodes)
-            }
             Group(stringResource(R.string.mesh_set_group_network)) {
                 SettingRow("grid", stringResource(R.string.mesh_set_split), stringResource(R.string.mesh_set_split_sub), onClick = live.onOpenSplitTunnel)
             }
