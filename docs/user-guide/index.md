@@ -1,15 +1,14 @@
 # User guide
 
-Learn how to use MESH for forensic investigations, manage your mesh network, and perform common tasks.
+Learn how to use MESHadb for forensic investigations and day-to-day tasks.
 
 ## Overview
 
 This section covers:
 
 - **Forensic workflows** - How to perform remote device analysis
-- **Network management** - Managing nodes, users, and access control
+- **Acquisitions and evidence** - Where acquisitions are stored, and how to analyse them
 - **Common tasks** - Day-to-day operations and best practices
-- **Architecture details** - Deep dive into how MESH works
 
 ## Documentation
 
@@ -19,55 +18,71 @@ This section covers:
 
     ---
 
-    Complete guide to using MESH for forensic investigations, including workflows, tools, and best practices.
+    Workflows, tools and best practices for MESHadb investigations.
 
     [:octicons-arrow-right-24: View User guide](user-guide.md)
 
-- :material-sitemap:{ .lg .middle } **Architecture Details**
+- :material-folder-lock:{ .lg .middle } **Acquisitions and evidence**
 
     ---
 
-    Deep dive into MESH architecture, including technical details, protocols, and implementation.
+    Where acquisitions land, how to get them off the container, and analysing them with MVT.
 
-    [:octicons-arrow-right-24: View Architecture](architecture.md)
+    [:octicons-arrow-right-24: View Acquisitions](acquisitions.md)
 
 </div>
 
-## Quick Reference
+## Quick reference
 
-### Common commands
+At the `meshcli>` prompt:
 
-```bash
-#Connect and pair to an Android device over ADB-over-Wifi
-mesh adbpair --host 100.63.x.x --hostport 1234 --pairport 1234 --code 1234
+```
+# Create a one-time PIN for the device to join
+pin
 
-#Connect and pair BUT initate AndroidQF instantly on connection
-mesh adbpair --host 100.63.x.x --hostport 1234 --pairport 1234 --code 1234 --qf
+# Show the address QR code again, or save it as a PNG
+qr
+qr -o /home/mesh/acquisitions/session-qr.png
 
-#Initate ADB acquisition (AndroidQF/WARD) into the bind-mounted acquisitions dir
-mesh adbcollect --output /home/mesh/acquisitions/case-2026-08-27
+# Pair and connect to the device's Wireless debugging (interactive)
+adbpair
 
-# Check mesh status
-mesh status
+# Run an AndroidQF/WARD acquisition into the acquisitions folder
+adbcollect
+adbcollect --output /home/mesh/acquisitions/case-2026-08-27
 
-# Test connection and establish UDP hole punching
-mesh ping 100.67.x.x
+# Route the device's internet traffic through the analyst, and record it
+capture start
+forward on
+capture stop
+forward off
 
-# Connect to Android device
-adb connect 100.64.x.x:5555
+# Show the session
+status
 
-# Analyse a collected acquisition with MVT
-mvt-android check-androidqf /home/mesh/acquisitions/case-2026-08-27
-
-# Capture network traffic into the same acquisitions directory
-tcpdump -i mesh0 -w /home/mesh/acquisitions/case-2026-08-27/capture.pcap
+# After the acquisition: clean up, turn off developer mode, end the session
+adbclean
+adbdisable
+disconnect
 ```
 
-## Getting Help
+In a second terminal, from `task shell`:
+
+```bash
+# Talk to the device directly
+adb devices
+adb shell
+
+# Analyse an acquisition with MVT
+mvt-android download-iocs
+mvt-android check-androidqf /home/mesh/acquisitions/case-2026-08-27
+```
+
+## Getting help
 
 - **Troubleshooting:** [Troubleshooting guide](../reference/troubleshooting.md)
 - **CLI reference:** [CLI reference](../reference/cli-reference.md)
-- **Community:** [GitHub Discussions](https://github.com/BARGHEST-ngo/mesh/discussions)
+- **Issues:** [GitHub Issues](https://github.com/BARGHEST-ngo/MESHadb/issues)
 
 ---
 

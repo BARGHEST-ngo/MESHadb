@@ -4,38 +4,39 @@ hide:
   - toc
 ---
 
-# [ MESH ]
+# [ MESHadb ]
 
 !!! warning
 
-    Please be aware this project is currently in public beta. We take security seriously, and we recommend not using this in production till we have conducted a full penetration-test. This is scheduled at the start of 2026. Features and APIs may change. Please report issues on [GitHub](https://github.com/BARGHEST-ngo/mesh).
+    MESHadb is in public beta and has not yet had an independent security audit. Features and commands may change. Please report issues on [GitHub](https://github.com/BARGHEST-ngo/MESHadb/issues).
 
-MESH is a censorship-resisting, peer-to-peer first, end-to-end encrypted overlay network for digital forensics. It's a fork of the [Tailscale](https://github.com/tailscale/tailscale) protocol, but is self-hostable and heavily modified for civil society and forensic operations.
+MESHadb gives you ADB access to an Android device anywhere in the world, without port forwarding, accounts or a server to run. The phone runs a small app, your computer runs the `meshcli` command-line client, and the two join an end-to-end encrypted, peer-to-peer tunnel using an address and a one-time PIN.
+
+It is built on [MESHnet](https://github.com/BARGHEST-ngo/MESHnet), BARGHEST's library for peer-to-peer WireGuard connections, and is designed primarily for consensual remote forensics of spyware and surveillance.
 
 **Key features:**
 
-- **Censorship resistance** - Uses [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) obfuscation for hostile or censored networks, and falls back to encrypted HTTPS relays when UDP is blocked. This offers protection against the GFW and detection by Deep Packet Inspection (DPI) systems.
-- **Peer-to-peer connections** - Creates direct encrypted tunnels between devices, removing the need for hub-and-spoke topologies
-- **Rapid deployment** - Spin up a forensics mesh, collect data, tear it down, and start again in minutes without complex configuration
+- **Peer-to-peer first** - Your computer and the phone connect directly over WireGuard-encrypted UDP, punching through NAT on both sides
+- **HTTPS relay fallback** - When UDP is blocked or hole punching fails, traffic falls back to a relay over HTTPS on TCP port 443. The relay only ever sees encrypted packets
+- **Nothing to deploy** - No control plane, no accounts. Every session gets new keys and a new address, and nothing persists when it ends
 
-**What you can do with MESH:**
+**What you can do with MESHadb:**
 
-- **Remote Android forensics** - Connect to Android devices anywhere in the world via ADB-over-WiFi
-- **Automated spyware detection** - Integrates with [AndroidQF](https://github.com/mvt-project/androidqf) and [MVT](https://github.com/mvt-project/mvt) for IOC checks
-- **Network monitoring** - Capture network traffic (PCAP) from remote devices
-- **Secure data transfer** - Collect forensic artifacts like bug reports and system dumps over encrypted connections
-- **Team collaboration** - Multiple analysts can work on different devices through the same secure network
-- **Quick setup and teardown** - Create investigation networks in minutes, tear them down when done
+- **Remote Android forensics** - Pair with a device's Wireless debugging from anywhere
+- **Automated acquisition** - `adbcollect` runs an [AndroidQF](https://github.com/mvt-project/androidqf)/WARD acquisition, ready for [MVT](https://github.com/mvt-project/mvt)
+- **Network monitoring** - Route a device's traffic through your machine and save it to a pcap
+- **Censorship circumvention** - Give a device on a restricted network a way out through a machine you trust
+- **Clean up afterwards** - Clear shell-accessible logs and turn developer mode back off
 
-## Mesh networking, made for remote mobile forensics
+## Remote ADB, made for mobile forensics
 
 <div class="grid cards" markdown>
 
-- :fontawesome-solid-hexagon-nodes:{ .lg .middle} **MESH networking**
+- :fontawesome-solid-hexagon-nodes:{ .lg .middle} **Features**
 
     ---
 
-    Discover why using a MESH network is a powerful way to build secure ephemeral remote forensic networks for threat analysis and forensics
+    What MESHadb does, and what it deliberately does not do
 
     [:octicons-arrow-right-24: View features](overview/features.md)
 
@@ -43,7 +44,7 @@ MESH is a censorship-resisting, peer-to-peer first, end-to-end encrypted overlay
 
     ---
 
-    Learn about the three core components that power MESH
+    How the CLI, the app and the relay fit together
 
     [:octicons-arrow-right-24: Explore architecture](overview/architecture.md)
 
@@ -51,7 +52,7 @@ MESH is a censorship-resisting, peer-to-peer first, end-to-end encrypted overlay
 
     ---
 
-    See how MESH helps investigators in real-world scenarios
+    See how MESHadb helps investigators in real-world scenarios
 
     [:octicons-arrow-right-24: Read use cases](overview/use-cases.md)
 
@@ -67,40 +68,38 @@ MESH is a censorship-resisting, peer-to-peer first, end-to-end encrypted overlay
 
 ## Quick start
 
-Ready to get started? Follow our step-by-step guide:
-
 <div class="grid cards" markdown>
 
 - :material-rocket-launch:{ .lg .middle } **Getting started guide**
 
     ---
 
-    Complete setup guide from zero to your first forensic collection
+    From zero to your first acquisition
 
     [:octicons-arrow-right-24: Start here](setup/index.md)
 
 </div>
 
-**Or jump directly to a specific component:**
+**Or jump directly to a step:**
 
-1. **[Set up the control plane](setup/control-plane.md)** - Deploy your self-hosted coordination server
-2. **[Install the analyst client](setup/analyst-client.md)** - Set up your Linux/macOS forensic workstation
-3. **[Deploy the endpoint client](setup/endpoint-client.md)** - Install the MESH app on target devices
-4. **[Verify your setup](setup/verification.md)** - Test connectivity and run your first collection
+1. **[Start the analyst client](setup/analyst-client.md)** - Run `meshcli` on your computer
+2. **[Install the Android app](setup/endpoint-client.md)** - Install MESHadb on the device
+3. **[Run your first session](setup/verification.md)** - Join, pair ADB and collect
 
 ## Learn more
 
 ### Documentation
 
-- **[Architecture](overview/architecture.md)** - Deep dive into how MESH works under the hood
-- **[User guide](user-guide/user-guide.md)** - Learn forensic workflows and best practices
-- **[AmneziaWG configuration](advanced/amneziawg.md)** - Configure censorship resistance
-- **[CLI reference](reference/cli-reference.md)** - Complete command-line documentation
+- **[Architecture](overview/architecture.md)** - How MESHadb works under the hood
+- **[User guide](user-guide/user-guide.md)** - Forensic workflows and best practices
+- **[Exit node and packet capture](advanced/exit-node-pcap.md)** - Capture a device's network traffic
+- **[CLI reference](reference/cli-reference.md)** - Every `meshcli` command
+- **[Security model](reference/security.md)** - What MESHadb protects, and what it does not
 - **[Troubleshooting](reference/troubleshooting.md)** - Common issues and solutions
 
 ### About the project
 
-- **[About BARGHEST](overview/about.md)** - Learn about the team behind MESH
+- **[About BARGHEST](overview/about.md)** - Learn about the team behind MESHadb
 - **[Platform support](overview/platform-support.md)** - Current and planned platform support
 - **[Get help](overview/about.md#get-help)** - Community, support, and contributing
 

@@ -1,82 +1,62 @@
-# Security best practices
+# Security model
 
-1. **Use HTTPS**: Always use a reverse proxy with SSL/TLS
-2. **Restrict API access**: Don't expose port 8080 publicly
-3. **Use strong ACLs**: Implement least-privilege access control
-4. **Rotate API keys**: Regularly expire and recreate API keys
-5. **Monitor logs**: Watch for suspicious activity
-6. **Backup regularly**: Automate database backups
-7. **Update frequently**: Keep Headscale and Docker updated
-8. **Use firewall**: Only allow necessary ports
+This page describes what MESHadb protects, what it does not, and how to use it safely.
 
-## Security considerations
+!!! warning "Not yet audited"
+    MESHadb and MESHnet have not yet had an independent security audit. MESHnet is pre-alpha, and its protocol may change.
 
-### Pre-authentication key rotation
+## What MESHadb protects
 
-Pre-auth keys should be rotated regularly:
+### Session content
 
-```bash
-# List existing keys
-docker compose exec headscale headscale preauthkeys list
+- **End-to-end encryption** - All traffic between `meshcli` and the app runs inside a WireGuard tunnel (Curve25519, ChaCha20-Poly1305, BLAKE2s), including when it passes through a relay
+- **Relays cannot read traffic** - A relay forwards packets that are already encrypted end to end
+- **Forward secrecy** - WireGuard rotates session keys, so a later key compromise does not expose earlier traffic
 
-# Expire old keys
-docker compose exec headscale headscale preauthkeys expire --user default KEY_ID
+### Admission
 
-# Create new key
-docker compose exec headscale headscale preauthkeys create --user default --reusable --expiration 24h
-```
+- **The address is a secret** - The address carries the analyst's public key and the relay to meet at. A device with only the address cannot join
+- **Single-use PINs** - A PIN admits one device and expires after 10 minutes
+- **Limited guessing** - Three wrong PINs cancel the pairing
+- **Key binding** - The analyst checks that the device presenting the PIN is the one on the other end of the tunnel
 
-**Best practices:**
+### Device exposure
 
-- Use short expiration times (24-48 hours)
-- Create new keys for each investigation
-- Expire keys immediately after use if not reusable
-- Never share keys between teams or cases
+- **ADB only** - The app accepts only ADB connections from the analyst. It refuses any other kind of stream
+- **Forwarding is opt-in** - The analyst grants forwarding per device, and it is off by default
+- **Local network stays local** - Forwarding never reaches private, link-local or carrier-grade NAT addresses through the analyst
 
-### Node removal
+### Ephemerality
 
-Remove nodes when investigations complete using the UI or via the backend via:
+- **New keys every start** - `meshcli` creates new keys and a new address every time. The app uses new keys for every session
+- **Nothing persists** - No accounts, no saved state. A lost connection is a finished session, and the device must rejoin with a new PIN
 
-```bash
-# List nodes
-docker compose exec headscale headscale nodes list
+## What MESHadb does not protect
 
-# Remove a node
-docker compose exec headscale headscale nodes delete --identifier NODE_ID
-```
+- **Metadata** - Relays can see both ends' IP addresses, connection timing and data volume
+- **IP addresses** - Once connected, each end can learn the other's IP address. MESHadb is not an anonymity tool
+- **The fact of a session** - A network observer can see that a device connected to a relay, even though it cannot read the content
+- **A compromised analyst** - Whoever controls `meshcli` has ADB access to the device for the session. Run it on a hardened, dedicated machine
+- **What happens over ADB** - With ADB, the analyst can read logs, copy files, install apps and change settings. The device owner's consent is the control here
 
-**When to remove nodes:**
+### Relays
 
-- Investigation completed
-- Device returned to owner
-- Node compromised or suspected compromise
-- Regular cleanup of old investigations
+The current release uses tailcat's default relay map, which points at free, rate-limited [DERP](https://github.com/tailscale/tailscale/tree/main/cmd/derper#derp) relays run by Tailscale. They are used to set up every session and carry its traffic when no direct path is possible. They cannot decrypt traffic, but they see the metadata listed above. Choosing your own relays is not yet configurable.
 
-### Audit logging
+## Using MESHadb safely
 
-Monitor ACL enforcement:
+1. **Share the address and PIN separately** - Use two channels, at least one of them end-to-end encrypted, such as Signal
+2. **Get consent** - Agree with the device owner what you will do before the session. The person holding the phone installs the app, enters the PIN and enables Wireless debugging themselves. Only use MESHadb on devices whose owner has agreed
+3. **Use a dedicated analyst machine** - Treat the device as untrusted, and keep the analyst separate from your everyday workstation
+4. **Protect acquisitions** - Point `ACQUISITION_DIR` at an encrypted volume. Acquisitions hold pulled APKs and a device backup
+5. **Clean up in order** - After the acquisition, run `adbclean`, then `adbdisable`, then `disconnect`
+6. **End sessions promptly** - Exit `meshcli` when you are done, so the address stops working
 
-```yaml
-# Enable detailed logging in config.yaml
-log:
-  level: debug  # or trace for maximum detail
-  format: json  # easier to parse
-```
+## After the session
 
-```bash
-# Monitor logs in real-time
-docker compose logs -f headscale | grep -i acl
-```
+- `adbdisable` turns off Developer options and Wireless debugging, so the device is not left open to non-consensual extraction
+- `adbclean` clears logcat buffers and shell-accessible telemetry. It is best effort: the paired ADB key, Wireless debugging history and root-only logs remain on the device. Only a factory reset clears the paired-keys store
 
-**What to monitor:**
+## Reporting vulnerabilities
 
-- Denied connection attempts (potential compromise)
-- Unusual access patterns
-- Failed authentication attempts
-- ACL rule changes
-
-### Provisioner API keys
-
-- Keys are per-owner with a concurrent session limit and optional expiry time. Clients include the key as a Bearer token
-- Keys are stored as SHA-256 hashes, the plaintext key is only visible at creation time and cannot be recovered
-- The admin service for key management is localhost only and should only be started on demand. Access requires SSH tunnel or direct access
+Please report security issues privately. See [SECURITY.md](https://github.com/BARGHEST-ngo/MESHadb/blob/main/SECURITY.md).

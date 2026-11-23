@@ -1,6 +1,6 @@
 # Acquisitions and evidence handling
 
-The analyst container collects Android acquisitions with `mesh adbcollect` (AndroidQF/WARD) and can analyse them offline with MVT. This page covers where acquisitions are stored, how to get them off the container, and how to analyse them.
+The analyst container collects Android acquisitions with `adbcollect` (AndroidQF/WARD) and can analyse them offline with MVT. This page covers where acquisitions are stored, how to get them off the container, and how to analyse them.
 
 ## Where acquisitions are stored
 
@@ -19,28 +19,30 @@ ACQUISITION_DIR=/mnt/evidence/mesh-acquisitions
 ```
 
 !!! warning "Everything else in the container is ephemeral"
-    Only `/home/mesh/acquisitions` is bind-mounted. Files written anywhere else — `/tmp`, `/home/mesh`, `/var/captures` — live in the container's writable layer and are **lost** when the container is recreated. Always keep evidence under the acquisitions path.
+    Only `/home/mesh/acquisitions` is bind-mounted. Files written anywhere else — `/tmp`, `/home/mesh` — live in the container's writable layer and are **lost** when `meshcli` exits and the container is removed. Always keep evidence under the acquisitions path.
 
 !!! note "Ownership"
     The container runs as `mesh` (uid/gid 1000) and writes acquisitions as that user, so the host directory must be owned by `1000:1000`. The entrypoint takes ownership of the mount on start if it is not already writable.
 
 ## Collecting an acquisition
 
-The container's working directory is the acquisitions mount, so a bare `mesh adbcollect` already writes into it:
+Run `adbcollect` at the `meshcli>` prompt after `adbpair`. The container's working directory is the acquisitions mount, so a bare `adbcollect` already writes into it:
 
-```bash
-# Writes to /home/mesh/acquisitions/<uuid> — on the host, persisted
-mesh adbcollect
 ```
+# Writes to /home/mesh/acquisitions/<uuid> — on the host, persisted
+meshcli> adbcollect
+```
+
+Each device gets its own acquisition folder. A pcap from `capture start` goes into the same folder as the device's first `adbcollect`, so the network capture and the acquisition stay together. Running `adbcollect` again for the same device starts a new folder.
 
 For a named case directory, pass `--output` explicitly. Keep the path under `/home/mesh/acquisitions` so it lands on the host:
 
-```bash
-mesh adbcollect --output /home/mesh/acquisitions/case-2026-08-27
+```
+meshcli> adbcollect --output /home/mesh/acquisitions/case-2026-08-27
 ```
 
 !!! danger "Do not point `--output` outside the mount"
-    `mesh adbcollect --output /tmp/case1` writes to the container's ephemeral layer and the acquisition is **lost** on recreate. Any explicit `--output` must be under `/home/mesh/acquisitions`.
+    `adbcollect --output /tmp/case1` writes to the container's ephemeral layer and the acquisition is **lost** when `meshcli` exits. Any explicit `--output` must be under `/home/mesh/acquisitions`.
 
 ## Getting acquisitions off the container
 
@@ -70,21 +72,20 @@ find "$ACQ/case-2026-08-27" -type f -exec sha256sum {} \; > case-2026-08-27.sha2
 tar -czf case-2026-08-27.tar.gz -C "$ACQ" case-2026-08-27
 ```
 
-### Alternative — copy from a running container
+### Alternative — copy from the running container
 
-If you did not use the bind mount (for example an older deployment, or an explicit `--output` elsewhere), copy the files out of the running container:
+If something was written outside the bind mount (for example an explicit `--output` elsewhere), copy it out while `meshcli` is still running. The container is named `mesh-analyst`:
 
 ```bash
-# Copy a case directory from the container to the host
-docker compose cp analyst:/home/mesh/acquisitions/case-2026-08-27 ./
+# Copy a directory from the container to the host
+docker cp mesh-analyst:/tmp/case1 ./
 
 # Or stream it out as a tar, preserving ownership and permissions
-docker compose exec -T analyst tar -C /home/mesh/acquisitions -cf - case-2026-08-27 \
-  | tar -C ./ -xf -
+docker exec mesh-analyst tar -C /tmp -cf - case1 | tar -C ./ -xf -
 ```
 
 !!! warning "Only while the container exists"
-    `docker compose cp` works only while the container is running. Once it is recreated or destroyed, anything not on the bind mount is gone. The bind mount is the reliable path.
+    `task analyst` starts the container with `--rm`, so it is deleted as soon as `meshcli` exits. Anything not on the bind mount is gone at that point. The bind mount is the reliable path.
 
 ### Chain of custody
 
@@ -94,7 +95,7 @@ docker compose exec -T analyst tar -C /home/mesh/acquisitions -cf - case-2026-08
 
 ## Analysing with MVT
 
-The analyst image ships [MVT (Mobile Verification Toolkit)](https://github.com/mvt-project/mvt) for offline analysis of acquisitions. Run it inside the container, pointing it at a collected acquisition.
+The analyst image ships [MVT (Mobile Verification Toolkit)](https://github.com/mvt-project/mvt) for offline analysis of acquisitions. Run it from `task shell`, pointing it at a collected acquisition.
 
 MVT's threat indicators are **not** bundled — download them before the first scan:
 
@@ -115,7 +116,7 @@ mvt-android check-androidqf /home/mesh/acquisitions/case-2026-08-27 \
 ```
 
 !!! note "Indicators are not persisted"
-    Downloaded indicators live in `~/.local`, which is not bind-mounted, so `download-iocs` must be re-run after the container is recreated. Record which indicator set a case was scanned against for reproducibility.
+    Downloaded indicators live in `~/.local`, which is not bind-mounted, so `download-iocs` must be re-run in every new session. Record which indicator set a case was scanned against for reproducibility.
 
 ## Next steps
 

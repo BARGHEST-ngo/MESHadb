@@ -1,18 +1,18 @@
 # Build troubleshooting
 
-Build and container-specific issues. For runtime network, auth, and peer connectivity problems, see [Reference Troubleshooting](../troubleshooting.md).
+Build and container-specific issues. For session, ADB and app problems, see [Troubleshooting](../troubleshooting.md).
 
-## Compose stack won't start
+## Analyst container
 
 ### `docker compose build` fails pulling a base image
 
 **Symptoms:**
 
-- `ERROR: failed to pull image ...: manifest unknown` or similar during `task build`.
+- `ERROR: failed to pull image ...: manifest unknown` or similar during `task build` or `task analyst`.
 
 **Causes:**
 
-- A pinned base image tag was removed from Docker Hub.
+- A pinned base image digest was removed from Docker Hub.
 - Docker Hub is rate-limiting.
 
 **Solutions:**
@@ -23,98 +23,75 @@ Build and container-specific issues. For runtime network, auth, and peer connect
     docker pull <image-from-the-error>
     ```
 
-2. **If rate-limited**: authenticate with `docker login`. The free tier raises the anonymous rate limit.
-3. **If the pinned image reference is actually gone**: update the relevant Dockerfile in a PR and review any related CI or devcontainer pins at the same time.
+2. **If rate-limited**: authenticate with `docker login`. Logged-in pulls have a higher rate limit than anonymous ones.
+3. **If the pinned image is actually gone**: update `analyst/Dockerfile` in a PR, and review the devcontainer and CI pins at the same time.
 
-### `analyst` container exits immediately
-
-**Symptoms:**
-
-- `docker compose up analyst` starts then stops.
-- `docker compose logs analyst` shows `Set the LOGIN_URL and AUTH_KEY environment variables in .env to run the MESH analyst client.`
-
-**Solutions:**
-
-1. Run `task analyst` (not `docker compose up analyst`). The Task wrapper prompts for missing values.
-2. Or edit `.env` directly. Set both `LOGIN_URL` and `AUTH_KEY`.
-
-### `analyst` container starts but tunnel doesn't come up
+### `go mod download` fails in the build stage
 
 **Symptoms:**
 
-- Logs show `tun device creation failed` or `operation not permitted`.
-
-**Causes:**
-
-- `/dev/net/tun` is not available on the host.
-- The container isn't getting `NET_ADMIN` or `NET_RAW`.
-- User namespace remapping (such as rootless Docker) is blocking the capability.
-
-**Solutions:**
-
-1. **Check `/dev/net/tun`**
-
-    ```bash
-    ls -l /dev/net/tun
-    lsmod | grep tun
-    ```
-
-2. **Check for rootless Docker**
-
-    ```bash
-    docker info | grep -i 'userns\|rootless'
-    ```
-
-3. Rootless Docker requires [additional capabilities](https://docs.docker.com/engine/security/rootless/#networking-errors) to pass `/dev/net/tun` through. The simplest fix is to run the analyst under normal Docker. The broader fix is documented upstream.
-
-### `ui` container: `envsubst: error while loading shared libraries`
-
-**Symptoms:**
-
-- `ui` container fails to start with a dynamic linker error about `envsubst`.
+- First-stage build fails with `cannot find module` or a checksum mismatch.
 
 **Cause:**
 
-- You've replaced the `nginx:alpine` base with a non-Alpine variant that doesn't include `gettext` by default.
+- The build context is wrong. `analyst/Dockerfile` expects the repo root as context (`context: .` in `compose.yml`), so it can copy `analyst/`. `docker build -f analyst/Dockerfile analyst/` would not find it.
 
-**Solutions:**
+**Solution:**
 
-1. Revert the base image.
-2. Or add `gettext` to the Dockerfile's runtime stage. `envsubst` is in the `gettext` package.
+Always build via `task build` or `task analyst`.
 
-### `ui` container: `502 Bad Gateway` on `/api/*`
+### `task analyst` says the container name is already in use
 
 **Symptoms:**
 
-- The UI loads, but API calls return 502.
+- `Conflict. The container name "/mesh-analyst" is already in use`.
 
-**Causes:**
+**Cause:**
 
-- `headscale` service isn't running.
-- `ui` was started with `--no-deps`, bypassing `depends_on`.
-- The Compose project name doesn't match because the stack was started from two different directories.
+- A previous `meshcli` session is still running, for example in another terminal, or a container was left behind.
 
 **Solutions:**
 
-1. **Check service state**
+```bash
+docker ps -a --filter name=mesh-analyst
+task down
+docker rm -f mesh-analyst   # if it is still listed
+```
 
-    ```bash
-    docker compose ps
-    docker compose logs headscale
-    ```
+### `task shell` says no such container
 
-2. **Check DNS inside `ui`**
+**Cause:**
 
-    ```bash
-    docker compose exec ui sh -c 'getent hosts headscale'
-    ```
+- `task shell` attaches to the running `mesh-analyst` container. It only works while `task analyst` is running in another terminal.
 
-3. **Restart from the repo root**
+### Acquisitions are not writable
 
-    ```bash
-    docker compose down
-    docker compose up -d headscale ui
-    ```
+**Symptoms:**
+
+- `warning: cannot chown /home/mesh/acquisitions; acquisitions may not be writable` on start, or `adbcollect` fails to create its folder.
+
+**Causes:**
+
+- The host directory is owned by another user and the entrypoint cannot take ownership, for example on rootless Docker or a network filesystem.
+- SELinux denies access. `compose.yml` uses `:z` to relabel the mount, which needs the host directory to allow relabelling.
+
+**Solutions:**
+
+```bash
+ACQ="${ACQUISITION_DIR:-$HOME/mesh-acquisitions}"
+mkdir -p "$ACQ"
+sudo chown 1000:1000 "$ACQ"
+```
+
+### `capture start` fails with a tcpdump permission error
+
+**Cause:**
+
+- The container did not get `NET_RAW`, for example when started without `compose.yml`, or the runtime strips file capabilities.
+
+**Solution:**
+
+Start the analyst with `task analyst`, which applies `cap_add: [NET_RAW]` from `compose.yml`.
 
 ---
 
@@ -130,33 +107,6 @@ Install go-task. See [taskfile.dev/installation](https://taskfile.dev/installati
 sudo snap install task --classic
 ```
 
-### Prompts stuck in a loop
-
-**Symptoms:**
-
-- `task controlPlane` asks for the same question twice or loops.
-
-**Cause:**
-
-- The prompt writes to `.env` via `echo >> .env`. If the task fails between prompt and append, inspect `.env` for duplicates or stale entries.
-
-**Solutions:**
-
-1. **Inspect `.env`**
-
-    ```bash
-    cat .env
-    ```
-
-    Remove duplicate or empty lines.
-
-2. **Or start over**
-
-    ```bash
-    rm .env
-    task controlPlane
-    ```
-
 ### `task tidy` modifies files unexpectedly
 
 **Symptoms:**
@@ -166,7 +116,7 @@ sudo snap install task --classic
 **Causes:**
 
 - Genuine dependency drift.
-- Your Go version differs from the one in `go.mod`'s `toolchain:` directive.
+- Your Go version differs from the one in `go.work` and `go.mod`.
 
 **Solutions:**
 
@@ -174,7 +124,7 @@ sudo snap install task --classic
 
     ```bash
     go env GOVERSION GOTOOLCHAIN
-    cat go.mod | grep -E '^(go|toolchain)'
+    grep -E '^(go|toolchain)' go.work go.mod analyst/go.mod
     ```
 
 2. If the Go versions don't match, switch to the repo's declared version. Otherwise CI and your local tidy will continually diverge.
@@ -183,7 +133,7 @@ sudo snap install task --classic
 
 **Symptoms:**
 
-- `task buildAnalyst` says "task not found".
+- `task buildNode` says "task not found".
 
 **Cause:**
 
@@ -194,69 +144,44 @@ sudo snap install task --classic
 Use the `-t` flag:
 
 ```bash
-task -t Taskfile.dev.yml buildAnalyst
+task -t Taskfile.dev.yml buildNode
 ```
 
 ---
 
-## Dockerfile build failures
+## Android build
 
-### `go mod download` fails in analyst build stage
+### MESHnet AAR checksum fails
 
 **Symptoms:**
 
-- First-stage build fails with `cannot find module` or a hash mismatch.
+- `make` fails at `shasum -a 256 -c` while downloading `meshnet.aar`.
+
+**Causes:**
+
+- `MESHNET_VERSION` was bumped in `android-client/Makefile` without updating `MESHNET_SHA256`.
+- The download was interrupted or altered.
+
+**Solutions:**
+
+1. Delete the partial file and retry:
+
+    ```bash
+    rm -f android-client/android/libs/meshnet.aar*
+    make -C android-client apk
+    ```
+
+2. If it still fails, compare the checksum with the one published on the [MESHnet release](https://github.com/BARGHEST-ngo/MESHnet/releases). Never update `MESHNET_SHA256` to match a file you haven't verified independently.
+
+### The app can't connect to an analyst built from the same branch
 
 **Cause:**
 
-- The build context is wrong. `analyst/Dockerfile` requires `context: .` at the repo root so it can see both `go.mod` and the `analyst/src` directory. `docker build -f analyst/Dockerfile analyst/` would only see `analyst/`.
+- `MESHNET_VERSION` in `android-client/Makefile` and the MESHnet version in `analyst/go.mod` differ, and the wire protocol changed between them.
 
 **Solution:**
 
-Always build via `task build`.
-
-### Android SDK stage: `sha256sum --strict --check` fails
-
-**Symptoms:**
-
-- Build fails with `sha256sum: WARNING: 1 computed checksum did NOT match`.
-
-**Cause:**
-
-- Google changed the command-line tools archive behind the pinned filename without changing the version identifier.
-
-**Solutions:**
-
-1. **Read the current pinned archive name from the source of truth**
-
-    Check `ANDROID_TOOLS_VERSION` in `analyst/Dockerfile` or `.devcontainer/Dockerfile`, depending on which build failed.
-
-2. **Manually download and verify that archive**
-
-    ```bash
-    wget https://dl.google.com/android/repository/commandlinetools-linux-<ANDROID_TOOLS_VERSION>_latest.zip
-    sha256sum commandlinetools-linux-<ANDROID_TOOLS_VERSION>_latest.zip
-    ```
-
-3. If it actually changed, open a PR updating the checksum in every place that installs that archive. In this repo that usually means both `analyst/Dockerfile` and `.devcontainer/Dockerfile`.
-
-### `control-plane/mesh-ui` build: `pnpm install --frozen-lockfile` fails
-
-**Symptoms:**
-
-- `ERR_PNPM_OUTDATED_LOCKFILE`.
-
-**Cause:**
-
-- Someone changed `package.json` without running `pnpm install` to update `pnpm-lock.yaml`.
-
-**Solutions:**
-
-```bash
-cd control-plane/mesh-ui
-pnpm install
-git add pnpm-lock.yaml
-```
+Keep both on the same MESHnet release. A stale `android/libs/meshnet.aar` survives `make clean`; delete it after changing the version.
 
 ---
 
@@ -281,28 +206,19 @@ git add pnpm-lock.yaml
 
 ## Release script failures
 
-### `working tree dirty after 'task tidy' + 'task generate'`
+### `working tree dirty after 'task tidy'`
 
 **Symptoms:**
 
 - The script aborts at the reproducibility check.
 
-**Causes:**
+**Cause:**
 
-- `go.mod` or `go.sum` has changed.
-- The tailscale submodule doesn't match upstream.
+- `go.mod` or `go.sum` is out of date.
 
-**Solutions:**
+**Solution:**
 
-1. The script prints `git status --short`. If `go.mod` or `go.sum` is listed, commit the tidy changes in a separate PR first.
-2. If files under `tailscale/` are listed, the submodule HEAD is wrong:
-
-    ```bash
-    git ls-tree HEAD tailscale
-    git -C tailscale rev-parse HEAD
-    ```
-
-    The two hashes must match.
+The script prints `git status --short`. Commit the tidy changes in a separate PR first, then rerun the script.
 
 ### `go tool yq is not available or not v4`
 
@@ -329,7 +245,7 @@ go tool yq --version
 
 **Solution:**
 
-Run `task pinGithubActions` locally and commit the result:
+Run `pinGithubActions` locally and commit the result:
 
 ```bash
 task -t Taskfile.dev.yml pinGithubActions
@@ -337,17 +253,15 @@ git add .github/workflows
 git commit -m "ci: pin github actions"
 ```
 
-### `govulncheck` fails on a submodule path
+### `verify-reproducibility` fails
 
 **Cause:**
 
-- MESH is using a tailscale package that contains (or transitively imports) a known-vulnerable Go stdlib function.
+- The two unsigned APK builds differ. The job prints a `diffoscope` command to compare them.
 
-**Solutions:**
+**Solution:**
 
-1. **Upgrade Go**: bump `go` in `go.mod` (and the `toolchain:` line if pinned).
-2. **Upgrade the vulnerable dependency**: if it's a direct dependency, run `go get <pkg>@latest && go mod tidy`.
-3. **Patch the tailscale submodule**: if the vulnerable code lives there, the fix goes in `github.com/BARGHEST-ngo/mesh-tailscale`.
+Build the unsigned APK twice locally (`make -C android-client release-apk`, keeping a copy of each), then run `diffoscope` on the two files to find the nondeterministic input, such as a timestamp, file ordering, or an unpinned dependency.
 
 ---
 
@@ -355,9 +269,9 @@ git commit -m "ci: pin github actions"
 
 If you can't resolve your issue:
 
-1. **Runtime/network issues**: see [Reference Troubleshooting](../troubleshooting.md).
-2. **File an issue** with the log output from `docker compose logs` and the failing command: [github.com/BARGHEST-ngo/MESH/issues](https://github.com/BARGHEST-ngo/MESH/issues).
-3. **Supply-chain concerns** (vulnerability, key compromise, SLSA failure): see [`SECURITY.md`](https://github.com/BARGHEST-ngo/MESH/blob/main/SECURITY.md) for private disclosure.
+1. **Session, ADB and app issues**: see [Troubleshooting](../troubleshooting.md).
+2. **File an issue** with the failing command and its output: [github.com/BARGHEST-ngo/MESHadb/issues](https://github.com/BARGHEST-ngo/MESHadb/issues).
+3. **Supply-chain concerns** (vulnerability, key compromise, SLSA failure): see [`SECURITY.md`](https://github.com/BARGHEST-ngo/MESHadb/blob/main/SECURITY.md) for private disclosure.
 
 ---
 

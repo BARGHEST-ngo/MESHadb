@@ -1,66 +1,76 @@
 # Analyst client setup
 
-Now let's set up the MESH analyst client on your acquisition workstation. This will allow you to connect to the mesh network and conduct forensic collections.
+The analyst client is `meshcli`, an interactive command-line client that runs in a Docker container on your forensic workstation. It starts the session, admits the device, and runs ADB, acquisition and capture tools over the tunnel.
 
-The analyst client runs on a secure forensics node and provides the MESH CLI for managing connections and running forensic tools.
-
-!!! WARNING
-While MESH locks down ports and services between the analyst node and the compromised device, you must treat that network path as untrusted. The analyst node must therefore be a hardened, dedicated system that can be snapshotted after forensic collection, and must not be your everyday personal workstation. Although it would require a very complex attack to achieve lateral movement from a mobile device to a Linux-based analyst node, you should still assume the risk exists and use a secure, controlled node for this purpose.”
+!!! warning
+    Treat the network path to the device as untrusted. The analyst node should be a hardened, dedicated system that can be snapshotted after collection, not your everyday personal workstation. Lateral movement from a mobile device to the analyst container would require a complex attack, but you should still assume the risk exists.
 
 ## Step 1: Clone and build
 
-Clone the MESH repository and build the analyst client if you haven't already:
-
 ```bash
-# Clone the repository
-git clone https://github.com/BARGHEST-ngo/mesh.git
-cd mesh
+git clone https://github.com/BARGHEST-ngo/MESHadb.git
+cd MESHadb
 
-# Build the MESH Docker images
+# Build the analyst image
 task build
 ```
 
-!!! tip "Build Time"
-The build process may take 5-10 minutes depending on your system.
+!!! tip "Build time"
+    The first build takes a few minutes while it compiles `meshcli` and installs `adb`, `tcpdump`, Suricata and MVT. `task analyst` also builds the image if needed, so this step is optional.
 
-## Step 2: Start the MESH analyst container
+## Step 2: Choose where acquisitions are stored
 
-The MESH analyst container runs in the background and maintains your connection to the mesh network. When first run, you will be prompted to configure the analyst client with the control plane URL and the pre-authentication key you created in the control plane web UI.
+Acquisitions are written to `/home/mesh/acquisitions` in the container, which is bind-mounted from `${ACQUISITION_DIR:-$HOME/mesh-acquisitions}` on the host. To use a dedicated evidence store, set `ACQUISITION_DIR` in a `.env` file at the repository root:
+
+```bash
+# .env
+ACQUISITION_DIR=/mnt/evidence/mesh-acquisitions
+```
+
+See **[Acquisitions and evidence handling](../user-guide/acquisitions.md)** for details.
+
+## Step 3: Start `meshcli`
 
 ```bash
 task analyst
 ```
 
-This will start the analyst container and open an interactive shell in the container. The analyst client will be running in the background and you can use the `mesh` command to manage your connection to the mesh network, among other things.
+This starts the analyst container and runs `meshcli` in the foreground. It prints a QR code and the session address, then waits at the `meshcli>` prompt:
 
-## Step 3: Verify Connection
+```
+█▀▀▀▀▀█ ▄▀▄ █▀▀▀▀▀█
+...
+MESH address: tcomFwWCCcjS5nKNqAod034nWoJZ...
 
-Check that your analyst client is connected to the mesh:
-
-```bash
-# Check connection status
-mesh status
-
-# Check your MESH IP
-mesh ip
+Run 'pin' to pair a device
+meshcli>
 ```
 
-## Step 4: Know where acquisitions are stored
+Every start creates new keys and a new address. Nothing is configured or saved between sessions.
 
-Acquisitions are written to `/home/mesh/acquisitions` in the container, which is
-bind-mounted from the host at `${ACQUISITION_DIR:-$HOME/mesh-acquisitions}`. This is
-the only container path that survives a recreate, and it is where evidence lands on
-the host. See **[Acquisitions and evidence handling](../user-guide/acquisitions.md)**
-for collecting, retrieving, and analysing acquisitions.
+Commands are typed at the `meshcli>` prompt without a prefix. Run `help` to list them, or see the [CLI reference](../reference/cli-reference.md).
+
+!!! info "A second terminal"
+    For direct `adb`, `tcpdump` or MVT use, open a shell in the running container from another terminal:
+
+    ```bash
+    task shell
+    ```
+
+## Step 4: Stopping
+
+Type `exit` (or `quit`, or press Ctrl-D) at the prompt to end the session and stop the container. Ctrl-C cancels the running command but does not exit, so a stray keypress cannot drop a connected device.
+
+`task down` stops anything left running.
 
 ## Troubleshooting
 
-If you encounter issues during setup, see the [Troubleshooting guide](../reference/troubleshooting.md) for common problems and solutions.
+If you encounter issues during setup, see the [Troubleshooting guide](../reference/troubleshooting.md).
 
 ## Next steps
 
-Your analyst client is now connected to the mesh. The next step is to install the endpoint client on an Android device.
+`meshcli` is running and waiting for a device. The next step is to install the app on the Android device.
 
 ---
 
-← [Previous: Control plane Setup](control-plane.md) | [Next: Endpoint client Setup](endpoint-client.md) →
+← [Previous: Getting started](index.md) | [Next: Android app](endpoint-client.md) →
