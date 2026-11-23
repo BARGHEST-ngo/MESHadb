@@ -1,16 +1,16 @@
 name: Feature request
-description: Propose a new feature for MESH
+description: Propose a new feature for MESHadb
 title: "FR: "
 labels: [needs-triage, enhancement]
 body:
   - type: markdown
     attributes:
       value: |
-        **MESH** is a custom fork of Tailscale with DPI protection and additional forensics and security features.
+        **MESHadb** gives remote ADB access to Android devices over a peer-to-peer, end-to-end encrypted tunnel built on [MESHnet](https://github.com/BARGHEST-ngo/MESHnet).
 
-        Please check if your feature request is [already filed](https://github.com/BARGHEST-ngo/MESH/issues).
+        Please check if your feature request is [already filed](https://github.com/BARGHEST-ngo/MESHadb/issues).
 
-        **Note:** For general Tailscale features, consider requesting them in the [upstream Tailscale repository](https://github.com/tailscale/tailscale/issues) instead.
+        **Note:** For transport features, such as relays or connection behaviour, consider requesting them in [MESHnet](https://github.com/BARGHEST-ngo/MESHnet/issues) instead.
   - type: dropdown
     id: feature-type
     attributes:
@@ -63,4 +63,4 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for filing a feature request. We appreciate your input in making MESH better.
+        Thanks for filing a feature request. We appreciate your input in making MESHadb better.

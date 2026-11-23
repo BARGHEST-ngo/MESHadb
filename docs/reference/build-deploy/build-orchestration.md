@@ -1,85 +1,35 @@
 # Build orchestration
 
-MESH uses [go-task](https://taskfile.dev) for build orchestration and task running. Two Taskfiles split responsibilities:
+MESHadb uses [go-task](https://taskfile.dev) for build orchestration and task running. Two Taskfiles split responsibilities:
 
-- `Taskfile.yml` is user-facing (deploy-time).
-- `Taskfile.dev.yml` is developer-facing (build-time).
+- `Taskfile.yml` is user-facing.
+- `Taskfile.dev.yml` is developer-facing. It auto-loads `.env`.
 
-Both auto-load `.env` and run silently by default.
-
-## Why Task?
-
-Three constraints shaped the choice:
-
-- **Interactive prompts that work cross-platform.** The setup flow asks for the control plane type, domain, and auth key, then writes them to `.env`. Task's `prompt:` and `requires.vars.enum:` directives make this declarative. `make` would need a custom shell wrapper per platform.
-- **Embedded platform-specific tasks.** Several tasks branch on OS (sed vs PowerShell, Linux sed vs macOS sed). Task exposes `platforms: [linux, darwin, windows]` on individual commands, so one Taskfile serves all three.
-- **Dotenv loading.** `dotenv: [.env]` means every task sees configuration variables without sourcing scripts.
+Both run silently by default.
 
 ## `Taskfile.yml`: user-facing tasks
 
-Path: `Taskfile.yml`. Default invocation target. All user-facing tasks live here.
+Path: `Taskfile.yml`. Default invocation target.
 
-### Task reference
-
-| Task | Purpose | Depends on |
-|---|---|---|
-| `build` | `docker compose build` | |
-| `controlPlane` | `docker compose up -d headscale ui` | `configureControlPlane` |
-| `down` | `docker compose down` | |
-| `apikey` | Calls `headscale apikeys create --expiration 3h` inside the running container. Prints a help message if the container isn't running locally. | |
-| `analyst` | Brings up the analyst service and opens an interactive bash shell via `docker compose exec analyst /bin/bash`. | `configureAnalyst` |
-| `setAuthKey` | Stops the analyst, removes its volume, and re-prompts for a new `AUTH_KEY`. Use when rotating keys or starting a fresh session. | |
-
-### The configuration flow
-
-`configureControlPlane` and `configureAnalyst` are high-level tasks that run the interactive setup prompts. Each prompt task is guarded by an `if:` so it only runs when the relevant `.env` variable is empty. Rerunning `task controlPlane` on a configured checkout skips the prompts.
-
-```text
-controlPlane
-  └── configureControlPlane
-        ├── controlPlaneType      (prompts Ephemeral vs Persistent)
-        ├── controlPlaneDomain    (prompts domain name)
-        ├── headscaleConfig       (sed-substitutes config.example.yaml if config.yaml missing)
-        └── confirmDotEnv         (cat .env, prompt "looks correct?")
-```
-
-### Headscale config templating
-
-`headscaleConfig` (internal) substitutes `CONTROL_PLANE_DOMAIN` in `config.example.yaml` and writes `config.yaml`, but only if the latter doesn't exist:
-
-```yaml
-- task: headscaleConfig
-  if: '[ ! -f control-plane/headscale/config.yaml ]'
-```
-
-The task declares `sources:` and `generates:` so Task skips it if the source hasn't changed since the generate target's mtime. On Windows, a PowerShell `-replace` command does the same thing.
-
-### Key rotation: `setAuthKey`
-
-```yaml
-cmds:
-  - docker compose down analyst && docker volume rm $(docker compose volumes -q | grep analyst-data) || true
-  - <prompt>
-  - task: promptAnalystAuthKey
-```
-
-Stopping the analyst and deleting its volume before asking for the new key ensures the container can't come up with stale state between the prompt and the restart.
+| Task | What it does |
+|---|---|
+| `build` | `docker compose build` |
+| `analyst` | Alias of `node`. `docker compose run --rm --build --name mesh-analyst analyst`: builds if needed and runs `meshcli` in the foreground |
+| `shell` | `docker exec -it --user mesh mesh-analyst bash`: a second shell in the running container |
+| `down` | `docker compose down` |
 
 ---
 
 ## `Taskfile.dev.yml`: developer-facing tasks
 
-Path: `Taskfile.dev.yml`. Invoked via `task -t Taskfile.dev.yml <task>`. Holds every task that a contributor runs and an end-user should not.
-
-### Task reference
+Path: `Taskfile.dev.yml`. Invoked via `task -t Taskfile.dev.yml <task>`. Holds every task that a contributor runs and an end user should not.
 
 | Task | What it does |
 |---|---|
 | `tidy` | `go mod tidy`. Kept separate because it mutates `go.sum` and affects reproducibility. |
-| `generate` | `go generate ./...`. Depends on `submoduleInit`. |
 | `docs` | `mkdocs build`. |
 | `serveDocs` | `mkdocs serve` with live reload on `:8000`. |
-| `buildAnalyst` | Runs `analyst/src/build.sh`. Produces `analyst/mesh`. Depends on `submoduleInit`. |
+| `buildNode` | Alias `buildAnalyst`. Runs `analyst/src/build.sh`. Produces `analyst/mesh`. |
 | `buildAndroid` | `make -C android-client apk`. |
 | `buildAndroidRelease` | `make -C android-client release-apk`. Unsigned. |
 | `buildAndroidSigned` | `make -C android-client release-apk-signed`. Requires `JKS_PATH`, `JKS_PASSWORD`, `JKS_ALIAS` env vars. |
@@ -93,41 +43,58 @@ Path: `Taskfile.dev.yml`. Invoked via `task -t Taskfile.dev.yml <task>`. Holds e
 
 ## Analyst build script
 
-Path: `analyst/src/build.sh`. Called by the Dockerfile (stage 1) and by `task buildAnalyst`. Single source of truth for the mesh binary build.
+Path: `analyst/src/build.sh`. Called by the Dockerfile (stage 1) and by `task -t Taskfile.dev.yml buildNode`. Single source of truth for the `meshcli` binary build.
 
 ### What it does
 
-1. Locates the Go module directory via `go env GOMOD`.
-2. Assembles build tags, always adding `ts_omit_logtail` (omits Tailscale telemetry) and any extra tags supplied through `$TAGS`.
-3. `cd` into `$GO_MOD_DIR/tailscale` (the submodule).
-4. Runs:
+1. Resolves the repo root from the script's own location.
+2. Runs, from `analyst/`:
 
     ```bash
-    go build -tags "$tags" -trimpath -o "$GO_MOD_DIR/analyst/mesh" ./cmd/tailscaled
+    go build -trimpath -o "$ROOT_DIR/analyst/mesh" .
     ```
+
+The binary is named `mesh` in the build output and installed as `/usr/bin/meshcli` in the image.
 
 ### Why a separate script rather than inline in the Dockerfile?
 
-Two reasons:
+- `buildNode` runs it for local development without Docker, so contributors iterating on CLI changes rebuild in seconds.
+- Build flags live in one place, so the image and local builds can't drift.
 
-- `task buildAnalyst` runs it for local dev without Docker. Contributors iterating on CLI changes rebuild in seconds instead of rebuilding the whole container.
-- Build flags live in one place. A change to build tags updates both the container image and local dev builds without drift.
+---
+
+## Android build
+
+Path: `android-client/Makefile`. Entry points: `apk` (debug), `release-apk` (unsigned release), `release-apk-signed` and `release` (signed AAB).
+
+The transport comes from the MESHnet Android library (`meshnet.aar`, Peer role only), downloaded from the [MESHnet releases](https://github.com/BARGHEST-ngo/MESHnet/releases):
+
+```make
+MESHNET_VERSION := <pinned>
+MESHNET_SHA256 := <sha256 of the AAR>
+MESHNET_AAR := android/libs/meshnet.aar
+```
+
+The AAR is fetched once to `android/libs/meshnet.aar` and verified with `shasum -a 256 -c` before Gradle runs. `make clean` keeps it.
+
+!!! warning "Keep MESHnet versions in sync"
+    `MESHNET_VERSION` in `android-client/Makefile` must match the `github.com/BARGHEST-ngo/MESHnet` version in `analyst/go.mod`, so both ends speak the same protocol. Bumping it means updating `MESHNET_SHA256` too.
 
 ---
 
 ## Development container
 
-Path: `.devcontainer/Dockerfile`, `.devcontainer/devcontainer.json`. Defines an ephemeral development environment compatible with VS Code's Remote Containers and GitHub Codespaces.
+Path: `.devcontainer/Dockerfile`, `.devcontainer/devcontainer.json`. Defines a development environment compatible with VS Code's Dev Containers and GitHub Codespaces.
 
 ### What the image installs
 
 The image is built from a devcontainers Debian base image. It installs:
 
-- Microsoft OpenJDK, Go, Node.js, and pnpm.
+- Microsoft OpenJDK, Go, Node.js and pnpm.
 - The Android command-line tools and the SDK components needed for Android builds.
 - Task CLI.
 
-Java and the Android command-line tools are checksum-verified in the Dockerfile. Go is version-pinned via the `GO_VERSION` build arg. Android SDK licenses are auto-accepted with `yes | sdkmanager --licenses`.
+Java and the Android command-line tools are checksum-verified in the Dockerfile. Go is version-pinned via the `GO_VERSION` build arg. Android SDK licences are auto-accepted with `yes | sdkmanager --licenses`.
 
 ### `devcontainer.json` features
 
@@ -139,18 +106,15 @@ Java and the Android command-line tools are checksum-verified in the Dockerfile.
 ### Mounts and environment
 
 - Binds `~/.android` from the host to `/root/.android` to persist the Android debug keystore across rebuilds.
-- Sets `LOCAL_WORKSPACE_FOLDER=${localWorkspaceFolder}` so bind mounts in `compose.yml` resolve to the host's repo path, not a path inside the devcontainer.
-- Forwards port `80` so the UI is reachable from the host browser.
 
 ---
 
 ## Dependencies and assumptions
 
-- **A `task` release with `prompt:` and `requires.vars.enum:` support**.
-- **`go` on PATH** for `task tidy`, `task generate`, `task buildAnalyst`. The CI workflow sets this up via `actions/setup-go` reading `go-version-file: go.mod`.
-- **`git submodule` initialised** before running any build task. `submoduleInit` handles this but requires network access on first run.
-- **F-Droid work** requires `fdroidserver`, which requires Python, gradle, JDK, and the Android SDK. The devcontainer has all of this.
-- **Signed releases** require `JKS_PATH`, `JKS_PASSWORD`, and `JKS_ALIAS` environment variables and an existing `.jks` keystore. `task buildAndroidSigned` fails if these are missing.
+- **`go` on PATH** for `task tidy` and `buildNode`, at the version in `go.work`.
+- **Network access** on the first Android build, to download the MESHnet AAR and Gradle dependencies.
+- **F-Droid work** requires `fdroidserver`, which requires Python, Gradle, a JDK and the Android SDK. The devcontainer has all of this.
+- **Signed releases** require `JKS_PATH`, `JKS_PASSWORD`, and `JKS_ALIAS` environment variables and an existing `.jks` keystore. `buildAndroidSigned` fails if these are missing.
 
 ---
 

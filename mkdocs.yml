@@ -1,7 +1,7 @@
-site_name: MESH Docs
+site_name: MESHadb Docs
 site_url: https://docs.meshforensics.org/
-repo_url: https://github.com/BARGHEST-ngo/MESH
-repo_name: BARGHEST-ngo/MESH
+repo_url: https://github.com/BARGHEST-ngo/MESHadb
+repo_name: BARGHEST-ngo/MESHadb
 edit_uri: edit/main/docs/
 exclude_docs: |
   /README.md
@@ -48,8 +48,8 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/BARGHEST-ngo/MESH
-      name: MESH on GitHub
+      link: https://github.com/BARGHEST-ngo/MESHadb
+      name: MESHadb on GitHub
   generator: false
 
 extra_css:
@@ -84,25 +84,19 @@ nav:
       - About: overview/about.md
   - Setup:
       - setup/index.md
-      - Control plane setup: setup/control-plane.md
       - Analyst client: setup/analyst-client.md
-      - Endpoint client: setup/endpoint-client.md
-      - Verification: setup/verification.md
+      - Android app: setup/endpoint-client.md
+      - First session: setup/verification.md
   - User Guide:
       - user-guide/index.md
       - User guide: user-guide/user-guide.md
       - Acquisitions and evidence: user-guide/acquisitions.md
-      - Architecture details: user-guide/architecture.md
   - Advanced:
       - advanced/index.md
-      - AmneziaWG configuration: advanced/amneziawg.md
-      - Control plane advanced: advanced/control-plane-advanced.md
-      - Exit node and PCAP: advanced/exit-node-pcap.md
+      - Exit node and packet capture: advanced/exit-node-pcap.md
   - Reference:
       - reference/index.md
-      - Configuration: reference/configuration.md
-      - ACL Policies: reference/policies.md
-      - Security: reference/security.md
+      - Security model: reference/security.md
       - CLI reference: reference/cli-reference.md
       - Troubleshooting: reference/troubleshooting.md
       - Build and deploy:

@@ -92,8 +92,9 @@ Then run `disconnect` in the CLI, or `task down` to stop everything.
 | `adbpair` | Pair and connect to a device's wireless debugging |
 | `status` | Show the session and its connected devices |
 | `forward on\|off` | Send a device's internet traffic through your machine |
-| `capture start\stop` | Record a device's forwarded traffic to a pcap file |
+| `capture start\|stop` | Record a device's forwarded traffic to a pcap file |
 | `disconnect` | End a device's session |
+| `qr` | Show the address QR code again, or save it as a PNG with `-o` |
 | `adbcollect` | Run a forensic acquisition (see [Forensics](#forensics-censorship-circumvention-and-security-research)) |
 | `adbdisable` | Turn off developer mode on the device |
 | `adbclean` | Clear shell-accessible logs left by a session |
@@ -126,6 +127,7 @@ Direct UDP is not always possible. Carrier-grade NAT, hotel and corporate Wi-Fi,
 - The relay is a fallback and a meeting point. It is not a hub, and the connection moves to a direct path whenever one becomes available.
 - Traffic is WireGuard-encrypted end to end between the CLI and the phone. The relay cannot decrypt it.
 - To the network in between, a relayed session is an HTTPS connection.
+- The current release uses [tailcat](https://github.com/tailscale/tailcat)'s default relays, which are free, rate-limited relays run by Tailscale. They cannot read your traffic, but they can see IP addresses, timing and data volume.
 
 ### A session, step by step
 
@@ -177,7 +179,8 @@ Alternatively run `capture start` to save pcap data to the device's acquisition 
 ## Security model
 
 - **The address is a secret.** Share the address and the PIN over separate channels, at least one of them end-to-end encrypted, such as Signal.
-- **PINs are single-use.** One PIN admits one device. Three wrong guesses cancel the pairing.
+- **PINs are single-use.** One PIN admits one device and expires after 10 minutes. Three wrong guesses cancel the pairing.
+- **Not an anonymity tool.** Relays can see both ends' IP addresses, and once connected each end can learn the other's.
 - **Nothing persists.** A lost connection is a finished session. The device must rejoin with a new PIN.
 - **Consent.** The person holding the phone installs the app, enters the PIN and enables Wireless debugging themselves. Only use MESHadb on devices whose owner has agreed.
 

@@ -1,437 +1,213 @@
 # CLI reference
 
-Complete reference for the MESH command-line interface (`meshcli`).
+`meshcli` is an interactive client. `task analyst` starts it in the analyst container, and you type commands at its prompt without a prefix:
 
-## Synopsis
-
-```bash
-meshcli [global-options] <command> [command-options]
+```
+meshcli> <command> [flags] [arguments]
 ```
 
-## Global Options
+On start, `meshcli` creates a new session: new keys, a new address, and a QR code of that address. The session ends when `meshcli` exits.
 
-- `--socket <path>`: Path to tailscaled socket (default: `/var/run/mesh/tailscaled.sock`)
-- `--help`, `-h`: Show help message
-- `--version`, `-v`: Show version information
+## Prompt behaviour
+
+- `help` lists the commands. `<command> --help` shows a command's flags
+- `exit`, `quit` or Ctrl-D stops `meshcli` and ends the session
+- Ctrl-C cancels the running command, or clears the prompt. It never exits `meshcli`, so a stray keypress cannot drop a connected device
+- Messages such as `device connected: <name>` and `device disconnected: <name>` appear as events happen
+
+## Device selection
+
+Commands that act on a device (`adbpair`, `adbcollect`, `adbclean`, `adbdisable`, `forward`, `capture start`, `disconnect`) use the connected device automatically. If none is connected they fail with `no device connected`. If several are connected, they ask you to choose.
+
+!!! note
+    MESHnet currently accepts one device per session, so you will normally see only one.
 
 ## Commands
 
-### up
+### pin
 
-Connect to the mesh network.
+Create a one-time PIN so a device can join.
 
-**Synopsis:**
-
-```bash
-meshcli up [options]
+```
+meshcli> pin
+PIN: 482913
 ```
 
-**Options:**
+- A PIN admits exactly one device and expires after 10 minutes
+- Three wrong guesses cancel the pairing
+- If `pin` reports `too many failed pairing attempts, restart MESH`, exit and start `meshcli` again. This creates a new address
+- If it reports `server at capacity`, a device is already connected
 
-- `--login-server <url>`: Control plane URL (required)
-- `--authkey <key>`: Pre-authentication key
-- `--accept-dns <bool>`: Accept DNS configuration (default: true)
-- `--accept-routes <bool>`: Accept subnet routes from peers (default: false)
-- `--advertise-routes <routes>`: Advertise subnet routes (comma-separated CIDRs)
-- `--advertise-exit-node`: Advertise as exit node
-- `--exit-node <ip>`: Use peer as exit node
-- `--exit-node-allow-lan-access`: Allow LAN access when using exit node
-- `--hostname <name>`: Set hostname for this node
-- `--shields-up`: Block all incoming connections
-- `--snat-subnet-routes`: SNAT traffic to advertised routes
-- `--netfilter-mode <mode>`: Netfilter mode (on, off, nodivert)
-- `--operator <user>`: Unix user to run as
-- `--ssh`: Enable SSH server
-- `--timeout <duration>`: Timeout for connection attempt
+### qr
 
-**Examples:**
+Show the session address as a QR code, or save it as a PNG.
 
-```bash
-# Basic connection
-meshcli up --login-server=https://mesh.example.com
-
-# Connect with pre-auth key
-meshcli up \
-  --login-server=https://mesh.example.com \
-  --authkey=abc123def456
-
-# Advertise subnet routes
-meshcli up \
-  --login-server=https://mesh.example.com \
-  --advertise-routes=192.168.1.0/24,10.0.0.0/8
-
-# Act as exit node
-meshcli up \
-  --login-server=https://mesh.example.com \
-  --advertise-exit-node
-
-# Use peer as exit node
-meshcli up \
-  --login-server=https://mesh.example.com \
-  --exit-node=100.64.1.5
-
-# Disable DNS
-meshcli up \
-  --login-server=https://mesh.example.com \
-  --accept-dns=false
+```
+qr [-o file.png]
 ```
 
-### down
+| Flag | Description |
+|------|-------------|
+| `-o <file>` | Save the QR code as a 512×512 PNG to this path instead of printing it |
 
-Disconnect from the mesh network.
-
-**Synopsis:**
-
-```bash
-meshcli down
+```
+meshcli> qr
+meshcli> qr -o /home/mesh/acquisitions/session-qr.png
 ```
 
-**Examples:**
-
-```bash
-meshcli down
-```
+Save under `/home/mesh/acquisitions` to find the file on the host.
 
 ### status
 
-Show connection status and peer information.
+Show the session: whether a PIN is waiting to be used, the connected devices with a short ID, and any running capture.
 
-**Synopsis:**
-
-```bash
-meshcli status [options]
+```
+meshcli> status
+Pairing: pending (PIN: 482913)
+Devices: 1 connected
+    "Pixel 8"    a1b2c3d4
+Capture: running, writing to /home/mesh/acquisitions/<uuid>/capture-2026-11-23T101500Z.pcap
 ```
 
-**Options:**
+### adbpair
 
-- `--peers`: Show detailed peer information
-- `--json`: Output in JSON format
-- `--self <bool>`: Show self information (default: true)
-- `--active`: Only show active peers
+Pair with the device's Wireless debugging and connect `adb` to it. Takes no flags; it asks for each value.
 
-**Examples:**
-
-```bash
-# Basic status with peers
-meshcli status
-
-# JSON output
-meshcli status --json
-
-# JSON with jq filtering
-meshcli status --json | jq '.Peer[] | {name: .HostName, ip: .TailscaleIPs[0]}'
-
-# Only active peers
-meshcli status --active
+```
+meshcli> adbpair
 ```
 
-**Output fields:**
+It asks for:
 
-- `BackendState`: Connection state (Running, Stopped, etc.)
-- `TailscaleIPs`: Mesh IP addresses
-- `Self`: Information about this node
-- `Peer`: Information about connected peers
-  - `HostName`: Peer hostname
-  - `TailscaleIPs`: Peer mesh IPs
-  - `Online`: Whether peer is online
-  - `CurAddr`: Current connection address (direct or DERP)
-  - `RxBytes`, `TxBytes`: Bytes received/transmitted
-  - `Created`: When peer was added
-  - `LastSeen`: Last activity timestamp
+1. **Pairing code** - The 6-digit code from **Pair device with pairing code** on the device
+2. **Pairing port** - The number after `:` under that code
+3. **Debug port** - The port on the main Wireless debugging screen, under **IP address & Port**
 
-### ping
+`adbpair` bridges each port through the tunnel to a local port on `127.0.0.1`, runs `adb pair` and `adb connect` against them, and checks that the device appears in `adb devices`. The connection then serves `adbcollect`, `adbclean`, `adbdisable`, and any `adb` command you run from `task shell`.
 
-Ping a peer using MESH protocol.
+### adbcollect
 
-**Synopsis:**
+Run an ADB acquisition with AndroidQF and WARD. The output is ready for WARD or MVT.
 
-```bash
-meshcli ping <hostname-or-ip> [options]
+```
+adbcollect [flags]
 ```
 
-**Options:**
+| Flag | Description |
+|------|-------------|
+| `--output <dir>` | Write the acquisition here. Default: the device's folder under `/home/mesh/acquisitions` |
+| `--module <name>` | Run a single module, for example `BackupTar` |
+| `--list <any>` | List available modules and exit. Takes a value, for example `--list all` |
+| `--fast <any>` | Fast mode: skip some checks. Takes a value, for example `--fast yes` |
+| `--verbose` | Verbose output |
+| `--version` | Show the AndroidQF version and exit |
 
-- `--timeout <duration>`: Timeout for ping (default: 5s)
-- `--c <count>`: Number of pings to send
-- `--until-direct`: Ping until direct connection established
-- `--verbose`: Verbose output
-
-**Examples:**
-
-```bash
-# Ping by hostname
-meshcli ping android-device
-
-# Ping by IP
-meshcli ping 100.64.2.1
-
-# Ping 10 times
-meshcli ping 100.64.2.1 --c 10
-
-# Ping until direct connection
-meshcli ping 100.64.2.1 --until-direct
+```
+meshcli> adbcollect
+meshcli> adbcollect --module BackupTar
+meshcli> adbcollect --output /home/mesh/acquisitions/case-01
 ```
 
-### netcheck
+- Needs a successful `adbpair` first, otherwise it fails with `device not connected over ADB, run adbpair`
+- Times out after 60 minutes
+- The first `adbcollect` for a device shares its folder with any `capture` pcap. Later runs get a new folder
+- Keep `--output` under `/home/mesh/acquisitions`, or the acquisition is lost when `meshcli` exits
 
-Check network connectivity and NAT traversal capabilities.
+See [Acquisitions and evidence handling](../user-guide/acquisitions.md).
 
-**Synopsis:**
+### forward
 
-```bash
-meshcli netcheck
+Route the device's internet traffic through the analyst, or stop.
+
+```
+forward on|off
 ```
 
-**Examples:**
-
-```bash
-meshcli netcheck
+```
+meshcli> forward on
+requested Pixel 8 to enable network forwarding on
+Pixel 8: forwarding true
 ```
 
-**Output:**
+- The app asks the device owner for VPN permission the first time
+- Local network destinations are never forwarded
+- Fails with `a capture is already running` if another device is being captured
 
-- UDP connectivity status
-- DERP relay latencies
-- NAT type
-- Port mapping capabilities
-- Preferred DERP region
+See [Exit node and packet capture](../advanced/exit-node-pcap.md).
 
-### bugreport
+### capture
 
-Generate a bug report for troubleshooting.
+Record the device's forwarded traffic to a pcap with `tcpdump`, running in the background.
 
-**Synopsis:**
-
-```bash
-meshcli bugreport [options]
+```
+capture start [-i <interface>]
+capture stop
 ```
 
-**Options:**
+| Flag | Description |
+|------|-------------|
+| `-i <interface>` | Interface to capture on. Default: `eth0` |
 
-- `--diagnose`: Include diagnostic information
+- The pcap is written to the device's acquisition folder as `capture-<UTC time>.pcap`
+- Only one capture runs at a time, and while it runs only the captured device may forward
+- `capture stop` prints the path and tcpdump's packet summary
+- The capture stops automatically if the device disconnects or `meshcli` exits
 
-**Examples:**
+### adbclean
 
-```bash
-meshcli bugreport > mesh-bugreport.txt
-meshcli bugreport --diagnose > mesh-bugreport-full.txt
+Clear logs and shell-accessible telemetry left by the session. Best effort.
+
+```
+meshcli> adbclean
 ```
 
-### logout
+It resets battery and process statistics, clears the statsd puller cache, and clears all logcat buffers.
 
-Log out from the control plane.
+!!! danger "Run only after the acquisition"
+    `adbclean` destroys the device's logs, including evidence. Run it after `adbcollect`, and before `adbdisable`, which removes ADB access.
 
-**Synopsis:**
+It does **not** remove the paired ADB key, Wireless debugging history, or root-only logs such as tombstones, dropbox and pstore. Only a factory reset clears the paired-keys store.
 
-```bash
-meshcli logout
+### adbdisable
+
+Turn off Developer options and Wireless debugging on the device, so it is not left open to non-consensual extraction.
+
+```
+meshcli> adbdisable
 ```
 
-**Examples:**
+It waits for the device to drop ADB, then disconnects `adb`. The device stays connected to the session; run `disconnect` to end it.
 
-```bash
-meshcli logout
+### disconnect
+
+End the device's session.
+
+```
+meshcli> disconnect
 ```
 
-### set
+The tunnel closes and any ADB bridges and running capture for the device stop. The device must rejoin with a new PIN.
 
-Configure MESH settings.
+## Host commands
 
-**Synopsis:**
+Run these from the repository root on the host:
 
-```bash
-meshcli set [options]
-```
+| Command | Description |
+|---------|-------------|
+| `task analyst` | Build the image if needed, start the analyst container and run `meshcli`. Alias of `task node` |
+| `task shell` | Open a shell in the running container as the `mesh` user, for `adb`, `tcpdump`, Suricata and MVT |
+| `task build` | Build the analyst image |
+| `task down` | Stop the analyst container |
 
-**Options:**
+### Environment variables
 
-- `--accept-dns <bool>`: Accept DNS configuration
-- `--accept-routes <bool>`: Accept subnet routes
-- `--advertise-routes <routes>`: Advertise subnet routes
-- `--advertise-exit-node <bool>`: Advertise as exit node
-- `--exit-node <ip>`: Use peer as exit node
-- `--shields-up <bool>`: Block incoming connections
-- `--hostname <name>`: Set hostname
+Read from `.env` at the repository root:
 
-**Examples:**
-
-```bash
-# Disable DNS
-meshcli set --accept-dns=false
-
-# Enable route acceptance
-meshcli set --accept-routes=true
-
-# Change exit node
-meshcli set --exit-node=100.64.1.5
-
-# Remove exit node
-meshcli set --exit-node=
-
-# Enable shields up
-meshcli set --shields-up=true
-```
-
-### ip
-
-Show mesh IP addresses.
-
-**Synopsis:**
-
-```bash
-meshcli ip [options]
-```
-
-**Options:**
-
-- `-4`: Show only IPv4
-- `-6`: Show only IPv6
-- `-1`: Show only first IP
-
-**Examples:**
-
-```bash
-# Show all IPs
-meshcli ip
-
-# IPv4 only
-meshcli ip -4
-
-# First IP only
-meshcli ip -1
-```
-
-### routes
-
-Show and manage routes.
-
-**Synopsis:**
-
-```bash
-meshcli routes
-```
-
-**Examples:**
-
-```bash
-meshcli routes
-```
-
-### version
-
-Show version information.
-
-**Synopsis:**
-
-```bash
-meshcli version
-```
-
-**Examples:**
-
-```bash
-meshcli version
-```
-
-## Environment Variables
-
-- `TS_DEBUG_TRIM_WIREGUARD`: Prevent peer trimming (set to `false`)
-- `TS_DEBUG_ALWAYS_USE_DERP`: Force DERP relay usage (set to `true`)
-- `TS_DEBUG_FIREWALL_MODE`: Firewall mode (auto, on, off)
-
-**Examples:**
-
-```bash
-# Prevent peer trimming
-export TS_DEBUG_TRIM_WIREGUARD=false
-sudo -E meshcli up --login-server=https://mesh.example.com
-
-# Force DERP relay
-export TS_DEBUG_ALWAYS_USE_DERP=true
-sudo -E meshcli up --login-server=https://mesh.example.com
-```
-
-## Exit Codes
-
-- `0`: Success
-- `1`: General error
-- `2`: Connection error
-- `3`: Authentication error
-
-## Configuration Files
-
-### State File
-
-Location: `/var/lib/mesh/tailscaled.state`
-
-Contains:
-
-- Node private key
-- Control plane URL
-- Authentication state
-
-**Backup:**
-
-```bash
-sudo cp /var/lib/mesh/tailscaled.state /var/lib/mesh/tailscaled.state.backup
-```
-
-### AmneziaWG Config
-
-Location: `/etc/mesh/amneziawg.conf`
-
-See [AmneziaWG Configuration](../advanced/amneziawg.md) for details.
-
-## Scripting Examples
-
-### Check if connected
-
-```bash
-#!/bin/bash
-if meshcli status | grep -q "Running"; then
-    echo "Connected"
-else
-    echo "Disconnected"
-fi
-```
-
-### Get mesh IP
-
-```bash
-#!/bin/bash
-MESH_IP=$(meshcli ip -4 -1)
-echo "Mesh IP: $MESH_IP"
-```
-
-### List online peers
-
-```bash
-#!/bin/bash
-meshcli status --json | jq -r '.Peer[] | select(.Online == true) | .HostName'
-```
-
-### Auto-reconnect on disconnect
-
-```bash
-#!/bin/bash
-while true; do
-    if ! meshcli status | grep -q "Running"; then
-        echo "Disconnected, reconnecting..."
-        meshcli up --login-server=https://mesh.example.com --authkey=abc123
-    fi
-    sleep 60
-done
-```
-
-### Monitor connection type
-
-```bash
-#!/bin/bash
-meshcli status --json | jq -r '.Peer[] | "\(.HostName): \(.CurAddr)"'
-```
+| Variable | Description |
+|----------|-------------|
+| `ACQUISITION_DIR` | Host directory mounted at `/home/mesh/acquisitions`. Default: `$HOME/mesh-acquisitions` |
 
 ## Next steps
 
-- **[User guide](../user-guide/user-guide.md)** - Learn forensic workflows
+- **[User guide](../user-guide/user-guide.md)** - Forensic workflows
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
-- **[Analyst client](../setup/analyst-client.md)** - Analyst client documentation

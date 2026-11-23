@@ -2,7 +2,7 @@
 
 ## About BARGHEST
 
-MESH is developed by **[BARGHEST](https://barghest.asia)**, a non-profit, grassroots security research team working at the intersection of technology and human rights.
+MESHadb is developed by **[BARGHEST](https://barghest.asia)**, a non-profit, grassroots security research team working at the intersection of technology and human rights.
 
 We are a non-profit company limited by guarantee (CLG) registered in the United Kingdom. We work in and for civil society, with most of our programmes based in East and South Asia. For U.S.-based funders, we are treated as the equivalent of a 501(c)(3) organization for grantmaking purposes.
 
@@ -18,7 +18,7 @@ Barghest’s team brings together senior experience in reverse engineering, zero
 
 **GitHub issues**
 : Report bugs and request features
-: [GitHub Issues](https://github.com/BARGHEST-ngo/mesh/issues)
+: [GitHub Issues](https://github.com/BARGHEST-ngo/MESHadb/issues)
 
 ### Direct support
 
@@ -28,12 +28,12 @@ For organisations requiring direct support:
 
 ## Contributing
 
-MESH is open source and welcomes contributions from the community.
+MESHadb is open source and welcomes contributions from the community.
 
 ### Ways to contribute
 
 **Report bugs**
-: Found a bug? Report it on [GitHub Issues](https://github.com/BARGHEST-ngo/mesh/issues)
+: Found a bug? Report it on [GitHub Issues](https://github.com/BARGHEST-ngo/MESHadb/issues)
 
 **Submit code**
 : Fix bugs or add features with pull requests
@@ -42,19 +42,18 @@ MESH is open source and welcomes contributions from the community.
 : Help make the docs better
 
 **Share use cases**
-: Tell us how you're using MESH
+: Tell us how you're using MESHadb
 
 **Translate**
-: Help translate MESH into other languages
+: Help translate MESHadb into other languages
 
 ## Acknowledgments
 
-MESH builds on the work of many open-source projects:
+MESHadb builds on the work of many open-source projects:
 
-- **[Tailscale](https://tailscale.com/)** - For the excellent VPN protocol
-- **[Headscale](https://github.com/juanfont/headscale)** - For the open-source control server
+- **[MESHnet](https://github.com/BARGHEST-ngo/MESHnet)** - BARGHEST's peer-to-peer transport that MESHadb runs on
+- **[tailcat](https://github.com/tailscale/tailcat)** and **[Tailscale](https://tailscale.com/)** - For the WireGuard data plane, NAT traversal and DERP relays that MESHnet is built on
 - **[WireGuard](https://www.wireguard.com/)** - For the fast and secure VPN protocol
-- **[AmneziaWG](https://github.com/amnezia-vpn/amneziawg)** - For censorship-resistant obfuscation
 - **[AndroidQF](https://github.com/mvt-project/androidqf)** - For mobile forensics tools
 - **[MVT](https://github.com/mvt-project/mvt)** - For mobile verification toolkit
 

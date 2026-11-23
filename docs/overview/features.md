@@ -1,228 +1,95 @@
 # Features
 
-MESH provides a comprehensive set of features designed specifically for secure mobile forensic investigations in challenging network environments.
+MESHadb provides a focused set of features for secure remote mobile forensics in challenging network environments.
 
-## End-to-End Encryption (E2EE)
+## End-to-end encryption
 
-MESH ensures all communications are encrypted from endpoint to endpoint, protecting sensitive forensic data.
+All traffic between `meshcli` and the Android app runs inside a WireGuard tunnel.
 
-### Automatic key distribution
+- **Fresh keys every session** - `meshcli` generates new keys, and so a new address, every time it starts. The app generates new keys for every session
+- **No key exchange to manage** - The address carries the public key and the relay to meet at. There are no keys to copy and no endpoints to configure
+- **Industry-standard cryptography** - WireGuard's Noise protocol: Curve25519, ChaCha20-Poly1305 and BLAKE2s, with forward secrecy
+- **Relays cannot read traffic** - Relayed packets are still WireGuard-encrypted end to end
 
-- **WireGuard/AmneziaWG keys** are automatically generated and distributed by the control plane
-- No manual key exchange required
-- No manual configuration changes to you VPN server
-- Keys are rotated automatically for enhanced security
-- Each peer-to-peer connection uses unique encryption keys
+!!! note "What relays can see"
+    A relay cannot decrypt traffic, but it can see the IP addresses of both ends, timing, and data volume. Once connected, each end can also learn the other's IP address. MESHadb is not an anonymity tool. See the [Security model](../reference/security.md).
 
-### Peer-to-Peer E2EE Tunnels
+## Peer-to-peer connections
 
-- Direct encrypted connections between analyst and endpoint devices
-- Uses industry-standard cryptography:
-  - **ChaCha20-Poly1305** for symmetric encryption
-  - **Curve25519** for key exchange
-  - **BLAKE2s** for hashing
-- Perfect forward secrecy ensures past communications remain secure
-
-### No plaintext exposure
-
-- Even when using DERP relays, data remains encrypted end-to-end
-- Control plane never sees any traffic
-- Relay servers cannot decrypt mesh traffic
-- All forensic data is protected in transit
-
-!!! success "Security guarantee"
-    MESH provides the same security guarantees as WireGuard: even if the control plane or relay servers are compromised, your forensic data remains encrypted and secure.
+- **Direct first** - Both ends meet at a relay, exchange their network endpoints, and punch through NAT to a direct UDP path
+- **No open ports** - No port forwarding, router changes or administrator access on either side
+- **Automatic upgrade** - A relayed session moves to a direct path as soon as one becomes available
 
 ## Censorship resistance
 
-MESH is designed to operate in hostile network environments with aggressive censorship and Deep packet inspection (DPI).
+- **HTTPS relay fallback** - When UDP or WireGuard is blocked, for example by deep packet inspection, traffic falls back to a [DERP](https://github.com/tailscale/tailscale/tree/main/cmd/derper#derp) relay over HTTPS on TCP port 443
+- **Looks like web traffic** - To the network in between, a relayed session is an HTTPS connection
+- **Circumvention** - With [forwarding](../advanced/exit-node-pcap.md) on, a device on a censored network reaches the internet from the analyst's location
 
-### AmneziaWG obfuscation
-
-- **Evades Deep packet inspection (DPI)** by obfuscating WireGuard traffic
-- Makes VPN traffic appear as regular HTTPS
-- Effective against the Great Firewall of China and similar systems
-- Configurable obfuscation parameters for different threat models
-
-!!! info "This feature is still in development"
-
-**How it works:**
-
-AmneziaWG modifies WireGuard packet headers to avoid detection by DPI systems that specifically target VPN protocols. This allows MESH to operate in countries with aggressive internet censorship.
-
-### HTTPS relay fallback
-
-- Automatically falls back to HTTPS-wrapped relay when UDP is blocked
-- DERP (Detoured Encrypted Relay for Packets) servers relay traffic over TCP/443
-- Indistinguishable from regular HTTPS web traffic
-- Works through GFWs and restrictive networks
-
-!!! tip "Censorship resistance configuration"
-    See the [AmneziaWG Configuration guide](../advanced/amneziawg.md) for detailed setup instructions.
+!!! info "Traffic obfuscation"
+    Earlier versions of MESH used AmneziaWG to disguise WireGuard packets. The current transport, MESHnet, does not. Its censorship resistance comes from the HTTPS relay fallback.
 
 ## Mobile forensics
 
-MESH is purpose-built for remote mobile device forensics, providing seamless access to Android and iOS devices.
+### Remote ADB
 
-### Android device access
-
-- **ADB-over-WiFi** automatically achievable on the MESH network due to CGNAT assignment
-- Direct access to device shell, logcat, and system services and bugreports
-- Supported APK for victim's to install and connect to the MESH
-- No USB cable required for forensic collection
-- Works from anywhere in the world over the mesh
-
-### iOS device support
-
-- Integration with **libimobiledevice** for iOS forensics
-- Remote access to iOS diagnostic interfaces
-- Support for backup extraction and analysis
-- (Full iOS support coming Q4 2026)
-
-!!! example "iOS forensics available in Q4 2026"
-
-### CGNAT address assignment
-
-- Each device gets a unique mesh IP address (100.64.0.0/10 range)
-- Devices are reachable from anywhere in the mesh
-- No port forwarding or NAT configuration required
-- Persistent IP addresses for consistent access
+- **Wireless debugging over the tunnel** - `adbpair` pairs with the device's Wireless debugging and bridges it to a local port on the analyst, so `adb` works as if the phone were on your desk
+- **No USB cable** - The device owner enables Wireless debugging and reads out the pairing code
+- **Restricted to ADB** - The app only accepts ADB connections from the analyst; it refuses any other stream
 
 ### Forensic tool integration
 
-MESH works with these forensic tools:
+- **AndroidQF and WARD** - Built into `adbcollect`
+- **MVT (Mobile Verification Toolkit)** - Installed in the analyst container for offline analysis
+- **Any ADB tool** - Open `task shell` to run `adb` directly against the bridged device
 
-- **AndroidQF** - Automated Android forensics artifact collection (built into `meshcli adbcollect`)
-- **MVT (Mobile Verification Toolkit)** - iOS and Android forensics (installed in the analyst container)
-- **libimobiledevice** - iOS device communication (planned, Q4 2026 — not yet installed)
-- **Custom scripts** - Any tool that works over ADB
-
-!!! example "Example: Remote AndroidQF collection"
-    ```bash
-    # Connect to device over mesh
-    adb connect 100.64.2.1:5555
-
-    # Run AndroidQF spyware scan
-    androidqf --adb 100.64.2.1:5555 --output ./artifacts/
+!!! example "Example: remote acquisition"
+    ```text
+    meshcli> adbpair
+    meshcli> adbcollect
     ```
 
-## Forensic workflows
+    Then, from `task shell`:
 
-MESH provides specialized features to support complete forensic investigation workflows.
+    ```bash
+    mvt-android check-androidqf /home/mesh/acquisitions/<acquisition-folder>
+    ```
 
-### Artifact collection
+### Clean-up after the session
 
-- **Bug reports** - Collect comprehensive device diagnostics
-- **dumpsys output** - Extract system service information
-- **System artifacts** - Pull files, databases, and logs
-- **Package information** - List installed apps and permissions
-- **Network configuration** - Capture network settings and connections
+- **`adbclean`** - Clears logcat buffers and shell-accessible telemetry left by the session (best effort)
+- **`adbdisable`** - Turns off Developer options and Wireless debugging, so the device is not left open to non-consensual extraction
 
-### Extended network analysis
+## Network forensics
 
-- **LAN route advertisement** - Access devices on the endpoint's local network if needed
-- **Subnet routing** - Investigate entire network segments remotely
-- **Network packet capture** - Monitor traffic from remote locations easily
-- **DNS analysis** - Inspect DNS queries and responses
+### Forwarding (exit node)
 
-### Exit node capabilities
+- `forward on` sends the device's TCP and UDP internet traffic through the tunnel to the analyst, which sends it on to the internet
+- Local network destinations stay local and are never forwarded
+- `forward off` returns the device to its own connection
 
-- Route internet traffic through mesh nodes
-- Monitor and analyse network behavior
-- Collect PCAPs
-- Detect malicious connections and C2 traffic
-- Capture network forensics evidence
+### Packet capture
 
-### Kill-Switch isolation
+- `capture start` records forwarded traffic to a pcap in the device's acquisition folder
+- `tcpdump` and Suricata ship in the analyst image for your own captures and analysis
 
-- Completely isolate device network traffic
-- Force all traffic through the mesh
-- Prevent data exfiltration during investigation
-- Ensure forensic integrity
-
-!!! info "Forensic Workflows Guide"
-    See the [User guide](../user-guide/user-guide.md) for detailed forensic workflow documentation.
+See [Exit node and packet capture](../advanced/exit-node-pcap.md).
 
 ## Rapid deployment
 
-MESH is designed for quick deployment in time-sensitive investigations.
+- **Nothing to deploy** - No control plane, no accounts, no server. Start `meshcli`, create a PIN, and the device can join
+- **Ephemeral sessions** - Nothing is persisted. A lost connection is a finished session, and the device rejoins with a new PIN
+- **Containerised** - The analyst client runs in Docker with all its tools, started with a single `task analyst`
 
-### Ephemeral mesh networks
+## Security and consent
 
-- Spin up a mesh network in minutes
-- Tear down completely when investigation is complete
-- No persistent infrastructure required
-- Leave no trace on target devices (optional ephemeral mode)
+- **Single-use PINs** - A PIN admits one device, expires after 10 minutes, and three wrong guesses cancel the pairing
+- **The address is a secret** - A device needs both the address and the PIN to join
+- **Consent by design** - Only the person holding the phone can install the app, enter the PIN and enable Wireless debugging
+- **Forwarding is opt-in** - The analyst grants forwarding per device. It is off by default
 
-### No complex VPN configuration
-
-- No manual IP address assignment
-- No routing table configuration
-- No firewall rule management
-- Everything is automatic
-
-### Automatic NAT Traversal
-
-- Works behind NAT without port forwarding
-- Automatic STUN for NAT hole-punching
-- Fallback to DERP relay when P2P fails
-- No network administrator access required
-
-### Self-Hostable control plane
-
-- Deploy your own control plane in minutes
-- Full control over your infrastructure
-- No dependency on third-party services
-- Docker-based deployment for easy management
-
-!!! success "Quick deployment"
-    From zero to first forensic collection in under 1 hour. See the [Getting started Guide](../setup/index.md).
-
-## Security and privacy
-
-### Access Control Lists (ACLs)
-
-- Fine-grained control over which nodes can communicate
-- User-based and tag-based access policies
-- Restrict access to specific services and ports
-- Audit logging for compliance
-
-### Node isolation
-
-- Isolate endpoint devices from each other
-- Prevent lateral movement in the mesh
-- Enforce least-privilege access
-- Protect sensitive investigations
-
-### Audit logging
-
-- Complete logs of mesh activity
-- Track node connections and disconnections
-- Monitor access to endpoint devices
-- Compliance with forensic evidence standards
-
-## Performance
-
-### Peer-to-Peer first
-
-- Direct connections between nodes when possible
-- Minimal latency for forensic operations
-- No unnecessary relay overhead
-- Automatic path optimization
-
-### Efficient protocol
-
-- WireGuard's high-performance cryptography
-- Minimal CPU and battery impact on endpoints
-- Efficient bandwidth usage
-- Suitable for low-bandwidth environments
-
-### Scalability
-
-- Support for hundreds of nodes per mesh
-- Multiple concurrent investigations
-- Distributed DERP relay infrastructure
-- Horizontal scaling of control plane
+!!! note "One device per session"
+    MESHnet currently accepts one device at a time. Support for several devices in one session is on the roadmap.
 
 ---
 

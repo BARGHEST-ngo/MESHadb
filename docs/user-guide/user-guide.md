@@ -1,317 +1,135 @@
 # User guide
 
-This guide covers common forensic workflows and best practices for using MESH in real-world investigations.
+This guide covers common forensic workflows and best practices for using MESHadb in real-world investigations.
 
 ## Forensic workflows
 
-### Basic Android mobile forensics workflow
+### Basic Android forensics workflow
 
-1. **Set up the mesh network**
-   - Deploy control plane
-   - Install analyst client
-   - Install endpoint client on target device
+1. **Before the session**
+    - Agree with the device owner what you will collect and do
+    - Make sure the device runs Android 11 or later and has the MESHadb app installed
 
-2. **Connect devices**
-   - Start MESH daemon on analyst workstation
-   - Connect endpoint device to mesh
-   - Verify connectivity with `meshcli status --peers`
+2. **Start the session**
 
-3. **Establish ADB connection**
+    ```bash
+    task analyst
+    ```
 
-   ```bash
-   adb connect 100.64.X.X:5555
-   adb devices
-   ```
+    ```
+    meshcli> pin
+    ```
 
-4. **Collect artifacts & run analysis**
+    Send the address (or QR code) and the PIN to the device owner over separate channels, and wait for `device connected`.
 
-    You should refer to for a comprehensive guide on Android ADB forensics: <https://forensics.socialtic.org/how-tos/04-how-to-extract-with-androidqf/index.html>
+3. **Pair ADB**
 
-5. **Tear down**
+    ```
+    meshcli> adbpair
+    ```
 
-   ```bash
-   adb disconnect
-   meshcli down
-   ```
+    The device owner turns on Wireless debugging, taps **Pair device with pairing code**, and reads you the code and the ports.
 
-### Censored Network Workflow
+4. **Collect artifacts and run analysis**
 
-For operations in censored environments:
+    ```
+    meshcli> adbcollect
+    ```
 
-1. **Enable AmneziaWG obfuscation**
+    Then analyse the acquisition with MVT. See [Acquisitions and evidence handling](acquisitions.md). For a comprehensive guide to Android ADB forensics, see <https://forensics.socialtic.org/how-tos/04-how-to-extract-with-androidqf/index.html>.
 
-   **Analyst:**
+5. **Clean up and tear down**, in this order
 
-   ```bash
-   sudo cat > /etc/mesh/amneziawg.conf << 'EOF'
-   [Interface]
-   Jc = 10
-   Jmin = 50
-   Jmax = 1000
-   S1 = 100
-   S2 = 150
-   H1 = 1234567
-   H2 = 2345678
-   H3 = 3456789
-   H4 = 4567890
-   EOF
-   sudo systemctl restart mesh
-   ```
+    ```
+    meshcli> adbclean
+    meshcli> adbdisable
+    meshcli> disconnect
+    meshcli> exit
+    ```
 
-   **Endpoint:**
-   - Open MESH app
-   - Settings > AmneziaWG > Heavy
-   - Reconnect
+!!! warning "Order matters"
+    `adbclean` needs ADB, and it destroys the device's logs, including those that record MESHadb usage. Run it only after the acquisition, then `adbdisable`.
 
-2. **Verify DERP fallback**
+### Censored network workflow
 
-   ```bash
-   meshcli status --json | jq '.Peer[] | {name: .HostName, relay: .CurAddr}'
-   ```
+There is nothing to configure for restrictive networks. When UDP is blocked or hole punching fails, the session automatically falls back to the HTTPS relay on TCP port 443, and moves back to a direct path if one becomes available.
 
-3. **Proceed with investigation**
-   - Connection may be slower due to obfuscation/relay
-   - Monitor connection stability
-   - Have backup communication channel
+- Expect higher latency and lower throughput while relayed. Large acquisitions take longer
+- Keep a backup communication channel with the device owner in case the session drops
+- If the session drops, it is over: create a new PIN and have the device rejoin
 
-### Team-based investigation
+### Network capture workflow
 
-Multiple analysts investigating multiple devices:
+To see what the device sends over the network, route its traffic through the analyst and record it:
 
-1. **Set up ACLs**
-
-   ```yaml
-   groups:
-     group:analysts:
-       - analyst1
-       - analyst2
-     group:endpoints:
-       - device1
-       - device2
-   
-   acls:
-     - action: accept
-       src:
-         - group:analysts
-       dst:
-         - group:endpoints:*
-   ```
-
-2. **Assign devices**
-   - Use tags to organise devices
-   - Document which analyst is investigating which device
-
-3. **Coordinate**
-   - Use separate communication channel for coordination
-   - Share findings through secure channels
-   - Avoid simultaneous ADB connections to same device
-
-## Advanced Features
-
-### Subnet Routing
-
-Access devices on the endpoint's local network:
-
-**On endpoint (Android):**
-
-1. Open MESH app
-2. Settings > Advertise LAN routes
-3. Enable and select network interface
-
-**On analyst:**
-
-```bash
-meshcli up --accept-routes
+```
+meshcli> capture start
+meshcli> forward on
+... let the device run ...
+meshcli> capture stop
+meshcli> forward off
 ```
 
-**Access LAN devices:**
+See [Exit node and packet capture](../advanced/exit-node-pcap.md).
 
-```bash
-# Ping device on endpoint's LAN
-ping 192.168.1.100
+### Several devices
 
-# SSH to device on endpoint's LAN
-ssh user@192.168.1.100
-```
+MESHnet currently accepts one device per session. To examine several devices, run them one after another, or run separate sessions on separate analyst machines. Support for several devices in one session is on the roadmap.
 
-### Kill switch
-
-Block all non-MESH traffic on endpoint:
-
-**On endpoint (Android):**
-
-1. Settings > VPN > MESH Settings > Always-on VPN -> Block connections without VPN
-2. Enable
-
-**Use cases:**
-
-- Prevent data leaks during investigation
-- Isolate compromised device
-- Ensure all traffic goes through mesh
-
-### Exit nodes for Network Capture
-
-Route internet traffic through an endpoint:
-
-**On analyst:**
-
-```bash
-# Use endpoint as exit node
-meshcli up --exit-node=100.64.X.X
-
-# Verify
-curl ifconfig.me  # Should show endpoint's public IP
-
-# Stop using exit node
-meshcli up --exit-node=
-```
-
-**On endpoint:**
-
-1. Open MESH app
-2. Settings > Use 100.64.x.x as exit node
-3. Enable
-
-**Use cases:**
-
-- Monitor endpoint's internet traffic and capture traffic
-- Access geo-restricted content
-- Investigate network-level issues
+## Best practices
 
 ### Operational
 
-1. **Test before deployment**: Verify setup in controlled environment
-2. **Document procedures**: Create runbooks for common tasks
-3. **Have backup plans**: Alternative communication channels
-4. **Coordinate with team**: Clear communication and task assignment
-5. **Monitor performance**: Watch for connection issues
-6. **Plan for disconnections**: Handle network interruptions gracefully
-7. **Respect privacy**: Only collect necessary data
-8. **Follow legal requirements**: Ensure compliance with local laws
+1. **Get consent first**: Agree the scope with the device owner before the session
+2. **Separate channels**: Send the address and the PIN over different channels, at least one end-to-end encrypted
+3. **Test before deployment**: Rehearse with a test device
+4. **Have backup plans**: Keep an alternative way to reach the device owner
+5. **Plan for disconnections**: A dropped session needs a new PIN and a new `adbpair`
+6. **Respect privacy**: Only collect what you need
+7. **Follow legal requirements**: Ensure compliance with local laws
 
 ### Performance
 
-1. **Use P2P when possible**: Direct connections are faster
-2. **Minimize obfuscation overhead**: Use lightest AmneziaWG preset that works
-3. **Collect artifacts efficiently**: Avoid unnecessary data transfer
-4. **Use compression**: Compress large artifacts before transfer
-5. **Monitor bandwidth**: Be aware of network limitations
-6. **Schedule intensive tasks**: Run large collections during off-peak hours
+1. **Use Wi-Fi on the device**: Wireless debugging needs it on most devices, and it is usually faster
+2. **Collect efficiently**: Use `adbcollect --module` to run a single module when you don't need everything
+3. **Expect relay overhead**: Relayed sessions are slower than direct ones
 
-## Common Tasks
+## Common tasks
 
-### Checking Connection Status
+### Checking the session
 
-```bash
-# Basic status
-meshcli status
-
-# Detailed peer information
-meshcli status --peers
-
-# JSON output for scripting
-meshcli status --json | jq
-
-# Check if using DERP relay
-meshcli status --json | jq '.Peer[] | select(.CurAddr | contains("derp"))'
+```
+meshcli> status
 ```
 
-### Collecting comprehensive artifacts
+`status` shows whether a PIN is pending, the connected device and its short ID, and any running capture.
+
+### Running your own ADB commands
+
+`adbpair` leaves the device connected to the analyst's ADB server, so any ADB tool works from `task shell`:
 
 ```bash
-#!/bin/bash
-# comprehensive-collection.sh
-
-DEVICE_IP="100.64.X.X"
-OUTPUT_DIR="./artifacts/$(date +%Y%m%d-%H%M%S)"
+OUTPUT_DIR="/home/mesh/acquisitions/manual-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$OUTPUT_DIR"
 
-# Connect
-adb connect $DEVICE_IP:5555
-
-# Bug report
 adb bugreport "$OUTPUT_DIR/bugreport.zip"
-
-# System dump
 adb shell dumpsys > "$OUTPUT_DIR/dumpsys.txt"
-
-# Logcat
 adb logcat -d > "$OUTPUT_DIR/logcat.txt"
-
-# Package list
 adb shell pm list packages -f > "$OUTPUT_DIR/packages.txt"
-
-# Running processes
 adb shell ps -A > "$OUTPUT_DIR/processes.txt"
-
-# Network connections
-adb shell netstat > "$OUTPUT_DIR/netstat.txt"
-
-# System properties
 adb shell getprop > "$OUTPUT_DIR/properties.txt"
-
-# AndroidQF
-androidqf --adb $DEVICE_IP:5555 --output "$OUTPUT_DIR/androidqf/"
-
-# Disconnect
-adb disconnect
-
-echo "Collection complete: $OUTPUT_DIR"
 ```
 
-### Managing multiple devices
+Keep output under `/home/mesh/acquisitions` so it lands on the host.
 
-```bash
-# List all connected devices
-meshcli status --peers | grep -E "100\.64\."
+### Re-sharing the address
 
-# Connect to all devices
-for ip in $(meshcli status --peers | grep -oE "100\.64\.[0-9]+\.[0-9]+"); do
-    adb connect $ip:5555
-done
-
-# Check all ADB connections
-adb devices
-
-# Disconnect all
-adb disconnect
+```
+meshcli> qr
+meshcli> qr -o /home/mesh/acquisitions/session-qr.png
 ```
 
-### Automating investigations
-
-```bash
-#!/bin/bash
-# auto-investigate.sh
-
-CONTROL_PLANE="https://mesh.yourdomain.com"
-PREAUTH_KEY="your-key-here"
-
-# Start daemon
-sudo systemctl start mesh
-
-# Connect to control plane
-meshcli up --login-server=$CONTROL_PLANE --authkey=$PREAUTH_KEY --accept-dns=false
-
-# Wait for peers
-echo "Waiting for devices..."
-while [ $(meshcli status --peers | grep -c "100.64") -eq 0 ]; do
-    sleep 5
-done
-
-# Get device IPs
-DEVICES=$(meshcli status --peers | grep -oE "100\.64\.[0-9]+\.[0-9]+")
-
-# Investigate each device
-for device in $DEVICES; do
-    echo "Investigating $device..."
-    ./comprehensive-collection.sh $device
-done
-
-# Disconnect
-meshcli down
-
-echo "Investigation complete"
-```
+The PNG lands in the acquisitions folder on the host, ready to send.
 
 ## Troubleshooting
 
@@ -319,6 +137,6 @@ See the [Troubleshooting guide](../reference/troubleshooting.md) for detailed so
 
 ## Next steps
 
-- **[CLI reference](../reference/cli-reference.md)** - Complete command documentation
-- **[AmneziaWG Configuration](../advanced/amneziawg.md)** - Configure censorship resistance
+- **[CLI reference](../reference/cli-reference.md)** - Every `meshcli` command
+- **[Exit node and packet capture](../advanced/exit-node-pcap.md)** - Network capture
 - **[Troubleshooting](../reference/troubleshooting.md)** - Common issues and solutions

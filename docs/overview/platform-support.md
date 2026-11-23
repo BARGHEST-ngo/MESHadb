@@ -1,130 +1,91 @@
 # Platform support
 
-MESH is designed to work across multiple platforms to support diverse forensic investigation scenarios. This page details current support status and planned features.
+This page details current support and planned features.
 
-## Current support (public alpha)
-
-The following platforms are currently supported in the public alpha release:
+## Current support (public beta)
 
 | Component | Android | iOS | Linux | macOS | Windows |
 |-----------|---------|-----|-------|-------|---------|
-| **Control plane** | N/A | N/A | ✅ | ✅ | ✅ |
-| **Analyst client** | N/A | N/A | ✅ | ✅ | ✅ |
-| **Endpoint client** | ✅ Android 8.0+ | ❌ Coming Q4 2026 | N/A | N/A | N/A |
+| **Analyst client** (`meshcli`) | N/A | N/A | ✅ | ✅ (Docker) | ⚠️ Untested (Docker/WSL) |
+| **Android app** | ✅ Android 11+ | ❌ Planned | N/A | N/A | N/A |
 
-### Android (endpoint client)
+### Android app
 
-**Supported Versions:**
+**Supported versions:**
 
-- Android 8.0 (Oreo) and later
-- Tested on Android 8.0 through Android 16
+- The app installs on Android 8.0 (Oreo) and later
+- Remote ADB needs **Android 11 or later**, the first version with Wireless debugging
 
 **Features:**
 
-- WireGuard VPN
-- Guided session for ADB-over-WiFi enablement
-- Background operation
-- Battery optimization
-- VPN kill-switch
+- Join a session by QR code and PIN
+- Guided setup of Wireless debugging
+- Forwarding of the device's internet traffic when the analyst turns it on
 - Connection status UI
 
 **Requirements:**
 
-- WiFi connectivity
-- VPN permission (granted during setup)
-- At least 50MB free storage
+- Internet access (Wi-Fi or mobile data)
+- Wireless debugging needs a Wi-Fi connection on most devices
+- VPN permission, used when the analyst turns forwarding on
 
 **Installation:**
 
-- Build from source (see [Endpoint client guide](../setup/endpoint-client.md))
-- Pre-built APKs available on [GitHub Releases](https://github.com/BARGHEST-ngo/mesh/releases)
+- [Google Play](https://play.google.com/store/apps/details?id=com.barghest.mesh)
+- [F-Droid](https://f-droid.org/en/packages/com.barghest.mesh/)
+- APKs on [GitHub Releases](https://github.com/BARGHEST-ngo/MESHadb/releases)
+- Build from source (see [Android app](../setup/endpoint-client.md))
 
 ### Analyst client
 
-**Supported Platforms:**
+**Supported platforms:**
 
-- Any operating system with Docker support
-- Tested on Ubuntu 20.04+, Debian 11+, RHEL 8+, macOS 11+, Windows 10+
-
-**Requirements:**
-
-- Docker Engine 20.10 or later
-- Docker Compose 2.0 or later
-
-**Installation:**
-
-- Docker Compose deployment (see [Analyst client guide](../setup/analyst-client.md))
-- Pre-built container images coming soon
-
-### Control plane
-
-**Supported Platforms:**
-
-- Any operating system with Docker support
-- Tested on Ubuntu 20.04+, Debian 11+, RHEL 8+, macOS 11+, Windows 10+
+- Any system that runs Docker with the Compose V2 plugin
+- Developed and tested on Linux
 
 **Requirements:**
 
-- Docker Engine 20.10 or later
-- Docker Compose 2.0 or later
-- 1GB RAM minimum (2GB recommended)
-- 10GB disk space
-- Public IP or domain name (persistent deployment) or tunneling service (ephemeral deployment)
+- Docker Engine with `docker compose`
+- [Task](https://taskfile.dev/installation/)
+- Outbound internet access. No inbound ports are needed
 
 **Installation:**
 
-- Docker Compose deployment (see [Control plane guide](../setup/control-plane.md))
-- Pre-built container images coming soon
+- Docker Compose (see [Analyst client](../setup/analyst-client.md))
 
-## Planned Support (2026)
+## Planned support
 
-The following platforms are planned for future releases:
+| Platform | Role | Status |
+|----------|------|--------|
+| **iOS** | Device app | Planned |
 
-| Platform | Expected | Role | Status |
-|----------|----------|------|--------|
-| **iOS** | Q4 2026 | Endpoint client | In development |
+### iOS (device app)
 
-### iOS (endpoint client) - Q4 2026
+**Planned features:**
 
-**Planned Features:**
-
-- WireGuard/AmneziaWG VPN
+- Join a session by QR code and PIN
 - libimobiledevice integration
-- Background operation
 - Connection status UI
-- iOS diagnostic interface access
 
-**Requirements (Estimated):**
+!!! info "iOS development"
+    Follow progress on [GitHub](https://github.com/BARGHEST-ngo/MESHadb) for updates.
 
-- iOS 14.0 or later
-- WiFi or cellular connectivity
-- VPN permission
+## Compatibility notes
 
-**Status:**
+### Android
 
-- Currently in early development
-- Prototype testing in progress
-- Expected release: Q4 2026
+**Known issues:**
 
-!!! info "iOS Development"
-    iOS support is actively being developed. Follow progress on [GitHub](https://github.com/BARGHEST-ngo/mesh) for updates.
-
-## Compatibility Notes
-
-### Android Compatibility
-
-**Known Issues:**
-
-- Some Android OEMs (Xiaomi, Huawei) may require additional battery optimization exemptions
-- ADB-over-WiFi may be disabled by some custom ROMs
-- VPN permission may conflict with other VPN apps
+- Some OEMs (Xiaomi, Huawei and others) stop background apps aggressively, which can drop the session
+- Wireless debugging may be missing or disabled on some custom ROMs and managed devices
+- Only one VPN can be active at a time, so another VPN app blocks forwarding
 
 **Workarounds:**
 
-- Disable battery optimization for MESH app
-- Manually enable ADB-over-WiFi in Developer Options
-- Disconnect other VPN apps before using MESH
+- Exempt the MESHadb app from battery optimisation
+- Keep the app open during the session
+- Disconnect other VPN apps before turning forwarding on
 
 ---
 
-**Next:** Learn [About BARGHEST](about.md) and the team behind MESH →
+**Next:** Learn [About BARGHEST](about.md) and the team behind MESHadb →
