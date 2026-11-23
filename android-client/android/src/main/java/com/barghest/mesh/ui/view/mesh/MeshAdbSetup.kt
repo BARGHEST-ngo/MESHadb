@@ -4,7 +4,6 @@
 package com.barghest.mesh.ui.view.mesh
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,20 +27,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barghest.mesh.ui.theme.MeshMono
 import com.barghest.mesh.ui.theme.MeshRadii
-import com.barghest.mesh.ui.theme.accent
-import com.barghest.mesh.ui.theme.accentDim
-import com.barghest.mesh.ui.theme.meshAmber
-import com.barghest.mesh.ui.theme.meshAmberDim
 import com.barghest.mesh.ui.theme.meshBg
-import com.barghest.mesh.ui.theme.meshBorder
 import com.barghest.mesh.ui.theme.meshCard
 import com.barghest.mesh.ui.theme.meshGreen
+import com.barghest.mesh.ui.theme.meshMuted
 import com.barghest.mesh.ui.theme.meshText
 import com.barghest.mesh.ui.theme.meshText2
 import android.content.Context
@@ -53,7 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.barghest.mesh.R
 
-private data class AdbStep(val n: Int, val titleRes: Int, val bodyRes: Int)
+private data class AdbStep(val n: Int, val titleRes: Int, val bodyRes: Int? = null)
 
 /** Opens Developer options (Wireless debugging), falling back to the top-level Settings app. */
 private fun openDeveloperSettings(context: Context) {
@@ -87,11 +82,10 @@ fun MeshAdbSetupScreen(
     var done by remember { mutableStateOf(setOf<Int>()) }
     val steps = remember {
         listOf(
-            AdbStep(1, R.string.mesh_adb_s1_title, R.string.mesh_adb_s1_body),
+            AdbStep(1, R.string.mesh_adb_s1_title),
             AdbStep(2, R.string.mesh_adb_s2_title, R.string.mesh_adb_s2_body),
             AdbStep(3, R.string.mesh_adb_s3_title, R.string.mesh_adb_s3_body),
-            AdbStep(4, R.string.mesh_adb_s4_title, R.string.mesh_adb_s4_body),
-            AdbStep(5, R.string.mesh_adb_s5_title, R.string.mesh_adb_s5_body),
+            AdbStep(4, R.string.mesh_adb_s4_title),
         )
     }
 
@@ -101,48 +95,45 @@ fun MeshAdbSetupScreen(
             Spacer(Modifier.height(18.dp))
             Text(stringResource(R.string.mesh_adb_title), color = cs.meshText, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.3).sp)
             Spacer(Modifier.height(6.dp))
-            Text(
-                stringResource(R.string.mesh_adb_intro),
-                color = cs.meshText2, fontSize = 13.5.sp, lineHeight = 20.sp,
-            )
-            Spacer(Modifier.height(16.dp))
-
-            Callout("info", cs.accent, cs.accentDim(0.08f), cs.accentDim(0.25f),
-                stringResource(R.string.mesh_adb_callout_menus))
+            Text(stringResource(R.string.mesh_adb_intro), color = cs.meshText2, fontSize = 13.5.sp, lineHeight = 20.sp)
             Spacer(Modifier.height(18.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // One solid card; tap a step to tick it off.
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(MeshRadii.card))
+                    .background(cs.meshCard)
+                    .padding(vertical = 6.dp),
+            ) {
                 steps.forEach { s ->
                     val ok = s.n in done
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .background(cs.meshCard, RoundedCornerShape(MeshRadii.card))
-                            .border(1.dp, if (ok) cs.meshGreen.copy(alpha = 0.4f) else cs.meshBorder, RoundedCornerShape(MeshRadii.card))
                             .clickable { done = if (ok) done - s.n else done + s.n }
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(13.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.Top,
                     ) {
-                        Box(
-                            Modifier.size(28.dp).background(if (ok) cs.meshGreen else cs.accentDim(0.16f), RoundedCornerShape(9.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (ok) MeshIcon("check", size = 16.dp, color = Color(0xFF0C0D0F), stroke = 2.4f)
-                            else Text("${s.n}", color = cs.accent, fontFamily = MeshMono, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                            if (ok) MeshIcon("check", size = 18.dp, color = cs.meshGreen, stroke = 2.2f)
+                            else Text("${s.n}", color = cs.meshMuted, fontFamily = MeshMono, fontSize = 14.sp)
                         }
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(s.titleRes), color = cs.meshText, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold)
-                            Spacer(Modifier.height(2.dp))
-                            Text(stringResource(s.bodyRes), color = cs.meshText2, fontSize = 12.5.sp, lineHeight = 18.sp)
+                            Text(
+                                stringResource(s.titleRes),
+                                color = if (ok) cs.meshText2 else cs.meshText,
+                                fontSize = 15.sp, fontWeight = FontWeight.Medium, lineHeight = 20.sp,
+                            )
+                            if (s.bodyRes != null) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(stringResource(s.bodyRes), color = cs.meshMuted, fontSize = 12.5.sp, lineHeight = 18.sp)
+                            }
                         }
                     }
                 }
             }
-
-            Spacer(Modifier.height(16.dp))
-            Callout("alert", cs.meshAmber, cs.meshAmberDim, cs.meshAmber.copy(alpha = 0.3f),
-                stringResource(R.string.mesh_adb_callout_warn))
             Spacer(Modifier.height(20.dp))
         }
 
@@ -152,22 +143,5 @@ fun MeshAdbSetupScreen(
                 MeshButton(stringResource(R.string.mesh_adb_its_on), onEnabled, modifier = Modifier.weight(1f), height = 56.dp, icon = "check")
             }
         }
-    }
-}
-
-@Composable
-private fun Callout(icon: String, iconColor: Color, bg: Color, border: Color, text: String) {
-    val cs = MaterialTheme.colorScheme
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(bg, RoundedCornerShape(12.dp))
-            .border(1.dp, border, RoundedCornerShape(12.dp))
-            .padding(13.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        MeshIcon(icon, size = 17.dp, color = iconColor, modifier = Modifier.padding(top = 1.dp))
-        Text(text, color = cs.meshText2, fontSize = 12.5.sp, lineHeight = 19.sp)
     }
 }
