@@ -31,17 +31,12 @@ private enum class MeshScreen { Home, Learn, Adb, Settings }
 data class MeshLiveEnv(
     val connected: Boolean,
     val analyst: Analyst?,        // built from the netmap peer; null => placeholder
-    val controlUrl: String?,
     val exitNodeName: String?,    // active exit node display name, or null = none
     val adbReady: Boolean,
     val onStartSession: () -> Unit,
     val onEndSession: () -> Unit,
     val onOpenExitNodes: () -> Unit,
-    val onOpenControlServer: () -> Unit,
-    val onOpenDns: () -> Unit,
     val onOpenSplitTunnel: () -> Unit,
-    val onOpenObfuscation: () -> Unit,
-    val onForgetEnrollment: () -> Unit,
 )
 
 /** Host for the redesigned MESH client; [onExit] fires when backing out of the root. */
@@ -78,13 +73,8 @@ fun MeshFlow(env: MeshLiveEnv, onExit: () -> Unit = {}) {
     }
     val settingsLive = remember(env) {
         MeshSettingsLive(
-            controlUrl = env.controlUrl,
-            onOpenControlServer = env.onOpenControlServer,
             onOpenExitNodes = env.onOpenExitNodes,
-            onOpenDns = env.onOpenDns,
             onOpenSplitTunnel = env.onOpenSplitTunnel,
-            onOpenObfuscation = env.onOpenObfuscation,
-            onForgetEnrollment = env.onForgetEnrollment,
         )
     }
 

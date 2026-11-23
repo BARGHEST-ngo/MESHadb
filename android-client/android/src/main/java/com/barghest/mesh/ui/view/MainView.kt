@@ -128,7 +128,6 @@ data class MainViewNavigation(
     val onNavigateToHealth: () -> Unit,
     val onNavigateToSearch: () -> Unit,
     val onNavigateToAuthKey: () -> Unit,
-    val onNavigateToCustomControl: () -> Unit,
     val onNavigateToADBSetup: () -> Unit,
     val onNavigateToDeviceInfo: () -> Unit,
     val onUploadQR: () -> Unit = {},
@@ -288,7 +287,6 @@ fun MainView(
             navigation = MeshHomeNavigation(
                 onNavigateToSettings = { navigation.onNavigateToSettings() },
                 onNavigateToAuthKey = { navigation.onNavigateToAuthKey() },
-                onNavigateToCustomControl = { navigation.onNavigateToCustomControl() },
                 onNavigateToMainView = { showMeshHomeSheet = false },
                 onNavigateToADBSetup = { navigation.onNavigateToADBSetup() },
                 onUploadQR = { navigation.onUploadQR() }
@@ -913,7 +911,6 @@ fun MainViewPreview() {
           onNavigateToHealth = {},
           onNavigateToSearch = {},
           onNavigateToAuthKey = {},
-          onNavigateToCustomControl = {},
           onNavigateToADBSetup = {},
           onNavigateToDeviceInfo = {}),
       vm,

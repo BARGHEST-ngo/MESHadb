@@ -98,14 +98,11 @@ import com.barghest.mesh.ui.view.mesh.MeshFlow
 import com.barghest.mesh.ui.view.mesh.MeshLiveEnv
 import com.barghest.mesh.ui.view.mesh.MeshOnboarding
 import com.barghest.mesh.ui.view.mesh.MeshDefaults
-import com.barghest.mesh.ui.view.AWGSettingsView
 import com.barghest.mesh.ui.view.AboutView
-import com.barghest.mesh.ui.view.DNSSettingsView
 import com.barghest.mesh.ui.view.DeviceInfoView
 import com.barghest.mesh.ui.view.ExitNodePicker
 import com.barghest.mesh.ui.view.HealthView
 import com.barghest.mesh.ui.view.LoginWithAuthKeyView
-import com.barghest.mesh.ui.view.LoginWithCustomControlURLView
 import com.barghest.mesh.ui.view.MDMSettingsDebugView
 import com.barghest.mesh.ui.view.MainView
 import com.barghest.mesh.ui.view.MainViewNavigation
@@ -397,7 +394,6 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate("search")
                                     },
                                     onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
-                                    onNavigateToCustomControl = { navController.navigate("loginWithCustomControl") },
                                     onNavigateToADBSetup = { navController.navigate("ADBSetup") },
                                     onNavigateToDeviceInfo = { navController.navigate("deviceInfo") },
                                     onUploadQR = { showQRScanFromHome = true },
@@ -406,7 +402,6 @@ class MainActivity : ComponentActivity() {
                                 SettingsNav(
                                     onNavigateToBugReport = { navController.navigate("bugReport") },
                                     onNavigateToAbout = { navController.navigate("about") },
-                                    onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
                                     onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
                                     onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
                                     onNavigateToSubnetRouting = { navController.navigate("subnetRouting") },
@@ -414,7 +409,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToManagedBy = { navController.navigate("managedBy") },
                                     onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
                                     onNavigateToPermissions = { navController.navigate("permissions") },
-                                    onNavigateToAWGSettings = { navController.navigate("awgSettings") },
                                     onBackToSettings = backTo("settings"),
                                     onNavigateBackHome = backTo("main"),
                                 )
@@ -490,13 +484,11 @@ class MainActivity : ComponentActivity() {
                                     PingViewModel(),
                                 )
                             }
-                            composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
                             composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
                             composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
                             composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
                             composable("about") { AboutView(backTo("settings")) }
                             composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
-                            composable("awgSettings") { AWGSettingsView(backTo("settings")) }
                             composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
                             composable("permissions") {
                                 PermissionsView(
@@ -567,27 +559,15 @@ class MainActivity : ComponentActivity() {
                                     MeshLiveEnv(
                                         connected = ipnState == Ipn.State.Running && vpnActive,
                                         analyst = analyst,
-                                        controlUrl = prefs?.ControlURL,
                                         exitNodeName = exitNodeName,
                                         adbReady = adbWifiEnabled,
                                         onStartSession = { showQRScanFromHome = true },
                                         onEndSession = { viewModel.toggleVpn(desiredState = false) },
                                         onOpenExitNodes = { navController.navigate("exitNodes") },
-                                        onOpenControlServer = { navController.navigate("loginWithCustomControl") },
-                                        onOpenDns = { navController.navigate("dnsSettings") },
                                         onOpenSplitTunnel = { navController.navigate("splitTunneling") },
-                                        onOpenObfuscation = { navController.navigate("awgSettings") },
-                                        onForgetEnrollment = { viewModel.resetAuth { } },
                                     )
                                 }
                                 MeshFlow(env = env, onExit = { moveTaskToBack(true) })
-                            }
-                            composable("loginWithCustomControl") {
-                                LoginWithCustomControlURLView(
-                                    onNavigateHome = backTo("main"),
-                                    backToSettings = backTo("main"),
-                                    onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
-                                )
                             }
                             composable("deviceInfo") {
                                 DeviceInfoView(backTo("main"))

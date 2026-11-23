@@ -35,36 +35,3 @@ class LoginWithAuthKeyViewModel : CustomLoginViewModel() {
     }
   }
 }
-
-class LoginWithCustomControlURLViewModel : CustomLoginViewModel() {
-  private val _successMessage = MutableStateFlow<String?>(null)
-  val successMessage: StateFlow<String?> = _successMessage
-
-  fun setControlURL(urlStr: String, onSuccess: () -> Unit) {
-    when (urlStr.startsWith("http", ignoreCase = true) &&
-            urlStr.contains("://") &&
-            urlStr.length > 7) {
-      false -> {
-        errorDialog.set(ErrorDialogType.INVALID_CUSTOM_URL)
-        return
-      }
-      true -> {
-        loginWithCustomControlURL(urlStr) {
-          it.onFailure { errorDialog.set(ErrorDialogType.ADD_PROFILE_FAILED) }
-          it.onSuccess {
-            _successMessage.value = "Control plane successfully added"
-          }
-        }
-      }
-    }
-  }
-
-  fun clearSuccessMessage() {
-    _successMessage.value = null
-  }
-
-  fun proceedToAuthKey(onNavigateToAuthKey: () -> Unit) {
-    clearSuccessMessage()
-    onNavigateToAuthKey()
-  }
-}

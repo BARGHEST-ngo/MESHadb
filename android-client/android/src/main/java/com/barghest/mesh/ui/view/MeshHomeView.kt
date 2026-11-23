@@ -43,7 +43,6 @@ import kotlinx.coroutines.flow.emptyFlow
 data class MeshHomeNavigation(
     val onNavigateToSettings: () -> Unit,
     val onNavigateToAuthKey: () -> Unit,
-    val onNavigateToCustomControl: () -> Unit,
     val onNavigateToMainView: () -> Unit,
     val onNavigateToADBSetup: () -> Unit,
     val onUploadQR: () -> Unit = {},
@@ -340,10 +339,6 @@ private fun ConnectionStepsSection(
 
             if (showManual) {
                 ConnectionStepButton(
-                    text = stringResource(R.string.step_2_control_server),
-                    onClick = navigation.onNavigateToCustomControl
-                )
-                ConnectionStepButton(
                     text = stringResource(R.string.step_3_auth_key),
                     onClick = navigation.onNavigateToAuthKey
                 )
@@ -412,7 +407,6 @@ fun MeshHomeViewPreview() {
             navigation = MeshHomeNavigation(
                 onNavigateToSettings = {},
                 onNavigateToAuthKey = {},
-                onNavigateToCustomControl = {},
                 onNavigateToMainView = {},
                 onNavigateToADBSetup = {}
             ),
