@@ -22,12 +22,6 @@ var statusArgs struct {
 	browser bool
 }
 
-// sanitizeForTerminal strips ASCII control characters, including ESC, from
-// peer-supplied strings before they are written to a terminal.
-func sanitizeForTerminal(s string) string {
-	return fmt.Sprintf("%q", s)
-}
-
 func StatusCmd(s *session.Session) *ffcli.Command {
 	return &ffcli.Command{
 		Name:       "status",

@@ -10,8 +10,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -253,7 +256,21 @@ func (s *Session) serveBridge(ln net.Listener, clientId, target string) {
 	}
 }
 
+func sanitizeName(name string) string {
+	name = strings.TrimSpace(strings.Map(func(r rune) rune {
+		if r == utf8.RuneError || !unicode.IsPrint(r) {
+			return -1
+		}
+		return r
+	}, name))
+	if name == "" {
+		return "unnamed device"
+	}
+	return name
+}
+
 func (s *Session) connected(c meshnet.ClientInfo) {
+	c.Name = sanitizeName(c.Name)
 	s.mu.Lock()
 	s.devices[c.ID] = &device{info: c}
 	s.mu.Unlock()
@@ -261,6 +278,7 @@ func (s *Session) connected(c meshnet.ClientInfo) {
 }
 
 func (s *Session) disconnected(c meshnet.ClientInfo, err error) {
+	c.Name = sanitizeName(c.Name) // MESHnet passes the raw name again here
 	s.mu.Lock()
 	d := s.devices[c.ID]
 	delete(s.devices, c.ID)
