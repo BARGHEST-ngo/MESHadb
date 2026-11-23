@@ -4,7 +4,6 @@
     <!-- Generic Strings -->
     <string name="log_in">Log in</string>
     <string name="log_out">Log out</string>
-    <string name="none">None</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
     <string name="unknown_user">Unknown user</string>
@@ -12,9 +11,7 @@
     <string name="using_exit_node">Using exit node (%s)</string>
     <string name="not_connected">Not connected</string>
     <string name="empty" translatable="false"> </string>
-    <string name="template" translatable="false">%s</string>
-    <string name="selected">Selected</string> 
-    <string name="offline">Offline</string>
+    <string name="template" translatable="false">%s</string> 
     <string name="ok">OK</string>
     <string name="_continue">Continue</string>
     <string name="warning">Warning</string>
@@ -61,7 +58,6 @@
     <string name="follow_steps_connect">Follow these steps to connect this peer node to an authority node</string>
     <string name="step_1_enable_adb">Enable_ADB</string>
     <string name="step_1_description">Enable ADB-over-WiFi</string>
-    <string name="step_2_control_server">Set Control_Server</string>
     <string name="step_2_description">Connect to a control server</string>
     <string name="step_3_auth_key">Set AUTH_KEY</string>
     <string name="step_3_description">Use an auth key to join the MESH</string>
@@ -93,16 +89,10 @@
     <string name="settings_admin_link">admin console</string>
     <string name="about_mesh">[ ABOUT MESH ]</string>
     <string name="bug_report">Bug report</string>
-    <string name="use_ts_dns">Use Magic DNS</string>
     <string name="internal_debug_options">Internal debug options</string>
 
     <!-- Strings for the main screen -->
     <string name="close_plain">close</string>
-    <string name="exit_node">EXIT NODE</string>
-    <string name="exit_node_offline">EXIT NODE OFFLINE</string>
-    <string name="running_exit_node">Running on this device</string>
-    <string name="exit_node_offline_mdm_orgname">The exit node selected by %1$s is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
-    <string name="exit_node_offline_mdm">The exit node selected by your organization is currently offline. Internet traffic is blocked. Contact a network administrator for help.</string>
     <string name="starting">Starting…</string>
     <string name="connect_to_MESH_prefix">"Connect again to talk to the other devices in the "</string>
     <string name="connect_to_MESH_suffix">"[ MESH NETWORKS ]"</string>
@@ -117,9 +107,6 @@
     <string name="machine_auth_explainer">This device must be approved by an administrator before it can connect to the MESH.</string>
     <string name="open_admin_console">Open admin console</string>
     <string name="needs_machine_auth">Authorization required</string>
-    <string name="disable">Disable</string>
-    <string name="enable">Enable</string>
-    <string name="stop">Stop</string>
 
     <!-- Strings for peer details -->
     <string name="os">OS</string>
@@ -166,18 +153,12 @@
     <string name="reauthenticate">Reauthenticate</string>
     <string name="switch_user_failed">Unable to switch users. Please try again.</string>
     <string name="add_profile_failed">Unable to add a new profile. Please try again.</string>
-    <string name="invalidCustomUrl">Please enter a valid URL in the form https://server.com</string>
-    <string name="invalidCustomURLTitle">Invalid URL</string>
-    <string name="custom_control_menu">Use the control server for your authority node</string>
-    <string name="custom_control_menu_desc">Enter the control server URL given to you by whoever runs the authority node.</string>
-    <string name="custom_control_placeholder" translatable="false">https://mesh.barghest.asia/</string>
     <string name="auth_key_menu">Use an auth key</string>
     <string name="auth_key_title">Connect with an auth key</string>
     <string name="auth_key_explanation">Enter the auth key generated on the authority node.</string>
     <string name="auth_key_placeholder" translatable="false">e.g. tskey-auth-xxxxxxxxxx</string>
     <string name="invalidAuthKey">The provided auth key is not in the correct format.</string>
     <string name="invalidAuthKeyTitle">Invalid key</string>
-    <string name="custom_control_url_title">Control server</string>
     <string name="auth_key_input_title">Auth key</string>
     <string name="delete_MESH">Delete MESH</string>
     <string name="contact_support">Contact support</string>
@@ -194,22 +175,8 @@
 </string>
 
     <!-- Strings for ExitNode picker -->
-    <string name="choose_exit_node">Choose exit node</string>
-    <string name="choose_mullvad_exit_node">Mullvad exit nodes</string>
-    <string name="mullvad_exit_nodes" translatable="false">Mullvad VPN</string>
-    <string name="best_available">Best available</string>
-    <string name="run_as_exit_node">Run as exit node</string>
-    <string name="run_this_device_as_an_exit_node">Run as exit node?</string>
-    <string name="run_exit_node_explainer">Other devices in your MESH will be able to route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
-    <string name="run_exit_node_caution">Running an exit node will severely impact battery life. On a metered data plan, significant cellular data charges may also apply. Always disable this feature when no longer needed.</string>
-    <string name="stop_running_as_exit_node">Stop running as exit node</string>
-    <string name="start_running_as_exit_node">Run as exit node</string>
-    <string name="running_as_exit_node">Now running as exit node</string>
-    <string name="run_exit_node_explainer_running">Other devices in your MESH can now route their internet traffic through this Android device. Make sure to approve this exit node in the admin console in order for other devices to see it.</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
-    <string name="exit_node_mdm_orgname">%1$s requires you to use an exit node.</string>
-    <string name="exit_node_mdm">Your organization requires you to use an exit node.</string>
 
     <!-- Strings for the MESH lock screen -->
     <string name="MESH_lock">MESH lock</string>
@@ -231,18 +198,6 @@
     <string name="learn_more">Learn more</string>
 
     <!-- Strings for DNS settings -->
-    <string name="dns_settings">DNS settings</string>
-    <string name="using_mesh_dns">Using Magic DNS</string>
-    <string name="this_device_is_using_tailscale_to_resolve_dns_names">This device is using MagicDNS to resolve DNS names.</string>
-    <string name="resolvers">Resolvers</string>
-    <string name="search_domains">Search domains</string>
-    <string name="not_running">Not running</string>
-    <string name="mesh_is_not_running_this_device_is_using_the_system_dns_resolver">MESH is not running. This device is using the system\'s DNS resolver.</string>
-    <string name="this_device_is_using_the_system_dns_resolver">This device is using the system DNS resolver.</string>
-    <string name="not_using_mesh_dns">Not using MESH DNS</string>
-    <string name="allow_lan_access">Allow LAN access</string>
-    <string name="countries">countries</string>
-    <string name="cities_available">cities available</string>
 
     <!-- Strings for MDM Settings Manifest (app_restrictions.xml) -->
     <string name="prevents_the_user_from_disconnecting_tailscale">Prevents the user from disconnecting MESH.</string>
@@ -362,10 +317,6 @@
     <string name="excluded_packages">Excluded packages</string>
 
     <!-- Strings for the Mullvad info view -->
-    <string name="enable_in_the_admin_console">Enable in the admin console</string>
-    <string name="mullvad_info_explainer">Once you enable Mullvad VPN on the admin console, you\'ll be able to encrypt and route your traffic using Mullvad’s global network of servers as exit nodes.</string>
-    <string name="mullvad_info_title">Mullvad VPN is not configured</string>
-    <string name="the_mullvad_vpn_logo">The Mullvad VPN logo</string>
     <string name="health_warnings">Health warnings</string>
     <string name="no_issues_found">No issues found</string>
     <string name="tailscale_is_operating_normally">MESH is operating normally.</string>
@@ -404,35 +355,9 @@
     <string name="taildrop_directory_picker_button">Open Directory Picker</string>
 
     <!-- AmneziaWG Settings -->
-    <string name="awg_settings">AmneziaWG Settings</string>
-    <string name="awg_settings_subtitle">Configure DPI evasion parameters</string>
-    <string name="awg_obfuscation_enabled">Obfuscation enabled</string>
-    <string name="awg_obfuscation_disabled">Using standard WireGuard</string>
     <string name="awg_enable_obfuscation">Enable obfuscation</string>
     <string name="awg_enable_obfuscation_desc">Enable AmneziaWG DPI evasion. When disabled, uses standard WireGuard protocol.</string>
-    <string name="awg_junk_packets">Junk Packets</string>
-    <string name="awg_jc">Jc (count)</string>
-    <string name="awg_jc_desc">Number of junk packets before handshake (0–128)</string>
-    <string name="awg_jmin">Jmin (bytes)</string>
-    <string name="awg_jmin_desc">Minimum junk packet size</string>
-    <string name="awg_jmax">Jmax (bytes)</string>
-    <string name="awg_jmax_desc">Maximum junk packet size (≤1280)</string>
-    <string name="awg_handshake_padding">Handshake Padding</string>
-    <string name="awg_s1">S1 (bytes)</string>
-    <string name="awg_s1_desc">Junk bytes in handshake init (0 or 15–150)</string>
-    <string name="awg_s2">S2 (bytes)</string>
-    <string name="awg_s2_desc">Junk bytes in handshake response (0 or 15–150)</string>
-    <string name="awg_message_types">Message Type Obfuscation</string>
-    <string name="awg_h1">H1</string>
-    <string name="awg_h2">H2</string>
-    <string name="awg_h3">H3</string>
-    <string name="awg_h4">H4</string>
-    <string name="awg_h_desc">Custom message type identifiers (all must be different, ≥1)</string>
-    <string name="awg_save">Save &amp; Apply</string>
-    <string name="awg_reset_defaults">Reset to Defaults</string>
     <string name="awg_saved">AmneziaWG settings saved. Reconnect to apply.</string>
-    <string name="awg_validation_error">Invalid configuration</string>
-    <string name="awg_restart_required">Settings saved. Disconnect and reconnect to apply changes.</string>
 
     <!-- Reset auth -->
     <string name="reset_mesh">Reset MESH</string>
@@ -486,8 +411,6 @@
     <string name="mesh_analyst_placeholder">Authority node</string>
     <string name="mesh_learn_card_title">How a session works</string>
     <string name="mesh_learn_card_sub">What the authority node can and can\'t do</string>
-    <string name="mesh_exit_node">Exit node</string>
-    <string name="mesh_exit_node_none">None — traffic stays direct</string>
     <string name="mesh_adb_on_title">Wireless debugging is on</string>
     <string name="mesh_adb_on_sub">Your phone is ready to connect</string>
     <string name="mesh_adb_off_title">Set up wireless debugging</string>
@@ -500,27 +423,14 @@
 
     <!-- Settings -->
     <string name="mesh_topbar_settings">Settings</string>
-    <string name="mesh_set_group_connection">Connection</string>
-    <string name="mesh_set_control_server">Control server</string>
-    <string name="mesh_set_not_configured">Not configured</string>
-    <string name="mesh_set_exit_node">Exit node</string>
-    <string name="mesh_set_exit_node_sub">Route your traffic through a peer</string>
     <string name="mesh_set_group_network">Network</string>
-    <string name="mesh_set_magic_dns">Magic DNS</string>
-    <string name="mesh_set_magic_dns_sub">Resolve devices by name on your mesh</string>
     <string name="mesh_set_split">App split tunneling</string>
     <string name="mesh_set_split_sub">Choose which apps use MESH</string>
-    <string name="mesh_set_group_privacy">Privacy</string>
-    <string name="mesh_set_obfuscation">Disguise traffic (AmneziaWG)</string>
-    <string name="mesh_set_obfuscation_sub">Hide the connection from network censors</string>
     <string name="mesh_set_group_about">About</string>
     <string name="mesh_set_version">MESH v%1$s</string>
     <string name="mesh_set_source">View source on GitHub</string>
     <string name="mesh_set_license">Open-source license</string>
     <string name="mesh_set_license_sub">AGPL-3.0-or-later</string>
-    <string name="mesh_set_group_danger">Danger zone</string>
-    <string name="mesh_set_forget">Forget enrollment</string>
-    <string name="mesh_set_forget_sub">Sign out and remove this device from the network</string>
     <string name="mesh_set_footer">MESH · the app collects no data</string>
 
     <!-- Learn -->
