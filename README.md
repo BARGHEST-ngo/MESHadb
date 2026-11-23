@@ -44,8 +44,8 @@ You need:
 **1. Start the CLI**
 
 ```
-git clone https://github.com/BARGHEST-ngo/MESH.git
-cd MESH
+git clone https://github.com/BARGHEST-ngo/MESHadb.git
+cd MESHadb
 task analyst
 ```
 
@@ -80,7 +80,9 @@ adb devices
 adb shell
 ```
 
-When you are done, run `disconnect` in the CLI, or `task down` to stop everything.
+When you are done, run `adbclean` to clear the logs the session left on the device, then `adbdisable` to turn developer mode off. Run them in that order and only after the acquisition, since `adbclean` needs ADB and destroys the device's logs, including those of MESHadb usage, if run early.
+
+Then run `disconnect` in the CLI, or `task down` to stop everything.
 
 ## Commands
 
