@@ -1,0 +1,125 @@
+// Copyright (c) BARGHEST
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+package cmd
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"strconv"
+	"strings"
+
+	"golang.org/x/term"
+)
+
+var ErrInterrupted = errors.New("interrupted")
+
+type ctrlCReader struct {
+	r           io.Reader
+	interrupted bool
+}
+
+func (c *ctrlCReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	// 3 = Ctrl+C
+	if i := bytes.IndexByte(p[:n], 3); i >= 0 {
+		p[i] = '\r'
+		n = i + 1
+		c.interrupted = true
+	}
+	return n, err
+}
+
+type Input struct {
+	t  *term.Terminal
+	fd int
+	r  *ctrlCReader
+}
+
+func NewInput(r io.Reader) *Input {
+	cr := &ctrlCReader{r: os.Stdin}
+	rw := struct {
+		io.Reader
+		io.Writer
+	}{cr, os.Stdout}
+
+	return &Input{
+		t:  term.NewTerminal(rw, ""),
+		fd: int(os.Stdin.Fd()),
+		r:  cr,
+	}
+}
+
+func (in *Input) Output() io.Writer {
+	return in.t
+}
+
+// ReadLine prints msg and returns the next line
+// It returns ctx's error on Ctrl-C and io.EOF when input ends
+func (in *Input) ReadLine(ctx context.Context, msg string) (string, error) {
+	in.t.SetPrompt(msg)
+	if old, err := term.MakeRaw(in.fd); err == nil {
+		defer term.Restore(in.fd, old)
+	}
+	line, err := in.t.ReadLine()
+	if in.r.interrupted {
+		in.r.interrupted = false
+		return "", ErrInterrupted
+	}
+	return strings.TrimSpace(line), err
+}
+
+// ReadValid asks until validate accepts the answer
+func (in *Input) ReadValid(ctx context.Context, msg string, validate func(string) error) (string, error) {
+	for {
+		answer, err := in.ReadLine(ctx, msg)
+		if err != nil {
+			return "", err
+		}
+		if err := validate(answer); err != nil {
+			fmt.Printf("Invalid input: %v\n", err)
+			continue
+		}
+		return answer, nil
+	}
+}
+
+// ReadPort asks until the answer is a TCP port number
+func (in *Input) ReadPort(ctx context.Context, msg string) (int, error) {
+	answer, err := in.ReadValid(ctx, msg, func(s string) error {
+		p, err := strconv.Atoi(s)
+		if err != nil || p < 1 || p > 65535 {
+			return fmt.Errorf("%q is not a port number (1-65535)", s)
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	p, _ := strconv.Atoi(answer)
+	return p, nil
+}
+
+// Select lists choices and asks until one is picked, returning its index
+func (in *Input) Select(ctx context.Context, title string, choices []string) (int, error) {
+	fmt.Println(title)
+	for i, c := range choices {
+		fmt.Printf(" %d) %s\n", i+1, c)
+	}
+	answer, err := in.ReadValid(ctx, "Choice: ", func(s string) error {
+		n, err := strconv.Atoi(s)
+		if err != nil || n < 1 || n > len(choices) {
+			return fmt.Errorf("choose 1-%d", len(choices))
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	n, _ := strconv.Atoi(answer)
+	return n - 1, nil
+}

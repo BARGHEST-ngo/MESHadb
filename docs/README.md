@@ -1,19 +1,18 @@
 # MESH Documentation
 
-This directory contains the documentation for MESH (Mesh Forensics Platform), built with [MkDocs](https://www.mkdocs.org/) and the [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme.
+This directory contains the documentation for MESHadb, built with [MkDocs](https://www.mkdocs.org/) and the [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) theme.
 
 ## Overview
 
-MESH is a comprehensive forensics platform designed for endpoint analysis, network monitoring, and security operations. This documentation provides guides for installation, getting started, and advanced configuration.
+MESHadb gives remote ADB access to Android devices over a peer-to-peer, end-to-end encrypted tunnel, built on [MESHnet](https://github.com/BARGHEST-ngo/MESHnet). It is designed primarily for consensual remote forensics. This documentation covers setup, forensic workflows, network capture and reference material.
 
 ## Documentation Structure
 
 - **Overview** - Introduction, architecture, features, platform support, and use cases
-- **Getting Started** - Quick start guides for control plane, endpoint clients, and analyst clients
-- **Configuration** - Detailed installation instructions for all components
+- **Setup** - Starting the analyst client, installing the Android app, and a first session
 - **User Guide** - Usage patterns and workflows
-- **Advanced** - Advanced configuration topics including AmneziaWG and control plane details
-- **Reference** - CLI reference and troubleshooting guides
+- **Advanced** - Exit node and packet capture
+- **Reference** - CLI reference, security model, troubleshooting, and build and release
 
 ## Local Development
 
@@ -49,7 +48,7 @@ Output will be generated in the `site/` directory.
 
 ## Live Documentation
 
-The documentation is automatically deployed to [https://docs.meshforensics.org/](https://docs.meshforensics.org/) when changes are pushed to the main branch.
+The documentation is automatically deployed to [https://docs.meshforensics.org/](https://docs.meshforensics.org/) when changes under `docs/` are pushed to the main branch. CI runs `markdownlint-cli2` and `mkdocs build --strict` first, so check both locally before opening a pull request.
 
 ## Contributing
 

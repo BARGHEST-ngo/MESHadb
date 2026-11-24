@@ -15,28 +15,21 @@ import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.system.OsConstants
+import android.util.Log
 import com.barghest.mesh.mdm.MDMSettings
 import com.barghest.mesh.ui.model.Ipn
 import com.barghest.mesh.ui.notifier.Notifier
 import com.barghest.mesh.util.TSLog
-import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import libtailscale.Libtailscale
 
-open class IPNService : VpnService(), libtailscale.IPNService {
+open class IPNService : VpnService() {
   private val TAG = "IPNService"
-  private val randomID: String = UUID.randomUUID().toString()
   private lateinit var app: App
   val scope = CoroutineScope(Dispatchers.IO)
 
-  override fun id(): String {
-    return randomID
-  }
-
-  override fun updateVpnStatus(status: Boolean) {
+  fun updateVpnStatus(status: Boolean) {
     app.getAppScopedViewModel().setVpnActive(status)
   }
 
@@ -44,6 +37,64 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     super.onCreate()
     // grab app to make sure it initializes
     app = App.get()
+    MeshnetSession.onState = ::onMeshnetState
+    MeshnetSession.onForwardRequest = ::onForwardRequest
+  }
+
+  // MESHnet: called for each state of the MESHnet session, from a Go goroutine. The
+  // service lives exactly as long as the session, so stop when the session ends.
+  private fun onMeshnetState(state: String) {
+    when (state) {
+      "Connecting" -> {}
+      "Connected" -> {
+        updateVpnStatus(true)
+      }
+      else -> {
+        updateVpnStatus(false)
+        stopSelf()
+      }
+    }
+  }
+
+  private fun onForwardRequest(on: Boolean) {
+    try {
+      if (on && !MeshnetSession.isForwarding) startForwarding()
+      if (!on) MeshnetSession.stopForwarding()
+    } catch (e: Exception) {
+      Log.e(TAG, "forward request failed: ${e.message}")
+    }
+    MeshnetSession.reportForwarding()
+  }
+
+  private fun startForwarding() {
+    val b = newBuilder()
+    // made-up private addresses for the VPN interface.
+    b.addAddress("10.111.222.1", 32)
+    b.addAddress("fd00:6d65:7368::1", 128)
+    b.addRoute("0.0.0.0", 0)
+    b.addRoute("::", 0)
+    // Keep the local network local (Android 13+ only; older versions send it to the server, which refuses it)
+    for ((ip, bits) in listOf(
+      "10.0.0.0" to 8, "172.16.0.0" to 12, "192.168.0.0" to 16,
+      "169.254.0.0" to 16, "fc00::" to 7, "fe80::" to 10)) {
+      b.excludeRoute(ip, bits)
+    }
+    b.addDNSServer("1.1.1.1")
+    b.setMTU(1280) // must match MESHnet's forwardMTU
+    val vpn = b.establishVpn()
+    if (vpn == null) {
+      Log.e(TAG, "VPN not established: permission not granted")
+      return
+    }
+    if (!MeshnetSession.startForwarding(vpn)) Log.e(TAG, "forwarding did not start")
+  }
+
+  // MESHnet: connects with the pairing details the UI handed to MeshnetSession.
+  // Returns false if there are none.
+  private fun startMeshnet(): Boolean {
+    val started = MeshnetSession.start()
+    if (!started) TSLog.d(TAG, "no pending MESHnet pairing, nothing to connect")
+    return started
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
@@ -63,62 +114,45 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         ACTION_START_VPN -> {
           scope.launch { showForegroundNotification() }
           app.setWantRunning(true)
-          Libtailscale.requestVPN(this)
-          START_STICKY
-        }
-        "android.net.VpnService" -> {
-          // This means we were started by Android due to Always On VPN.
-          // We show a non-foreground notification because we weren't
-          // started as a foreground service.
-          scope.launch {
-            // Collect the first value of hideDisconnectAction asynchronously.
-            val hideDisconnectAction = MDMSettings.forceEnabled.flow.first()
-            val exitNodeName =
-                UninitializedApp.getExitNodeName(Notifier.prefs.value, Notifier.netmap.value)
-            app.notifyStatus(true, hideDisconnectAction.value, exitNodeName)
+
+          if (!startMeshnet() && !MeshnetSession.isActive) {
+            // Nothing to run: don't leave a "Connected" notification behind.
+            close()
           }
-          app.setWantRunning(true)
-          Libtailscale.requestVPN(this)
-          START_STICKY
+          // Not sticky: a restart could not reconnect, because a PIN works once.
+          START_NOT_STICKY
         }
         else -> {
-          // This means that we were restarted after the service was killed
-          // (potentially due to OOM).
-          if (UninitializedApp.get().isAbleToStartVPN()) {
-            scope.launch { showForegroundNotification() }
-            App.get()
-            Libtailscale.requestVPN(this)
-            START_STICKY
-          } else {
-            START_NOT_STICKY
+          // Started by Android rather than the app: Always-On VPN ("android.net.VpnService"), or a restart.
+          // Pairing details are never stored and a PIN works once, so there is nothing to reconnect with.#
+          if (!MeshnetSession.isActive) {
+            TSLog.d(TAG, "started by Android with no pairing, stopping")
+            close()
           }
+          START_NOT_STICKY
         }
       }
 
-  override fun close() {
+  fun close() {
     Notifier.setState(Ipn.State.Stopping)
-    disconnectVPN()
-    Libtailscale.serviceDisconnect(this)
-  }
-
-  override fun disconnectVPN() {
     stopSelf()
+    MeshnetSession.disconnect()
+    Notifier.setState(Ipn.State.Stopped)
   }
 
   override fun onDestroy() {
+    MeshnetSession.onState = null
+    MeshnetSession.onForwardRequest = null
     close()
     updateVpnStatus(false)
     super.onDestroy()
   }
 
   override fun onRevoke() {
+    MeshnetSession.stopForwarding()
     close()
     updateVpnStatus(false)
     super.onRevoke()
-  }
-
-  private fun setVpnPrepared(isPrepared: Boolean) {
-    app.getAppScopedViewModel().setVpnPrepared(isPrepared)
   }
 
   private fun showForegroundNotification(
@@ -156,7 +190,7 @@ open class IPNService : VpnService(), libtailscale.IPNService {
     }
   }
 
-  override fun newBuilder(): VPNServiceBuilder {
+  fun newBuilder(): VPNServiceBuilder {
     val b: Builder =
         Builder()
             .setConfigureIntent(configIntent())
@@ -185,14 +219,17 @@ open class IPNService : VpnService(), libtailscale.IPNService {
         TSLog.d(TAG, "Disallowing app: $disallowedPackageName")
         disallowApp(b, disallowedPackageName)
       }
+
+      // MESHnet: tailcat's own traffic must not go into the VPN it carries
+      disallowApp(b, packageName)
     }
 
     return VPNServiceBuilder(b)
   }
 
   companion object {
-    const val ACTION_START_VPN = "com.barghest.com.barghest.com.barghest.com.barghest.mesh.START_VPN"
-    const val ACTION_STOP_VPN = "com.barghest.com.barghest.com.barghest.com.barghest.mesh.STOP_VPN"
-    const val ACTION_RESTART_VPN = "com.barghest.com.barghest.com.barghest.com.barghest.mesh.RESTART_VPN"
+    const val ACTION_START_VPN = "com.barghest.mesh.START_VPN"
+    const val ACTION_STOP_VPN = "com.barghest.mesh.STOP_VPN"
+    const val ACTION_RESTART_VPN = "com.barghest.mesh.RESTART_VPN"
   }
 }

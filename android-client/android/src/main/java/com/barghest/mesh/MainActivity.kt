@@ -20,11 +20,14 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
+import android.database.ContentObserver
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.provider.Settings
 import android.util.Base64
@@ -98,25 +101,17 @@ import com.barghest.mesh.ui.view.mesh.MeshFlow
 import com.barghest.mesh.ui.view.mesh.MeshLiveEnv
 import com.barghest.mesh.ui.view.mesh.MeshOnboarding
 import com.barghest.mesh.ui.view.mesh.MeshDefaults
-import com.barghest.mesh.ui.view.AWGSettingsView
 import com.barghest.mesh.ui.view.AboutView
-import com.barghest.mesh.ui.view.DNSSettingsView
 import com.barghest.mesh.ui.view.DeviceInfoView
-import com.barghest.mesh.ui.view.ExitNodePicker
 import com.barghest.mesh.ui.view.HealthView
 import com.barghest.mesh.ui.view.LoginWithAuthKeyView
-import com.barghest.mesh.ui.view.LoginWithCustomControlURLView
 import com.barghest.mesh.ui.view.MDMSettingsDebugView
 import com.barghest.mesh.ui.view.MainView
 import com.barghest.mesh.ui.view.MainViewNavigation
-import com.barghest.mesh.ui.view.MullvadExitNodePicker
-import com.barghest.mesh.ui.view.MullvadExitNodePickerList
-import com.barghest.mesh.ui.view.MullvadInfoView
 import com.barghest.mesh.ui.view.NotificationsView
 import com.barghest.mesh.ui.view.PeerDetails
 import com.barghest.mesh.ui.view.PermissionsView
 import com.barghest.mesh.ui.view.PrimaryActionButton
-import com.barghest.mesh.ui.view.RunExitNodeView
 import com.barghest.mesh.ui.view.SearchView
 import com.barghest.mesh.ui.view.SettingsView
 import com.barghest.mesh.ui.view.SplitTunnelAppPickerView
@@ -129,7 +124,6 @@ import com.barghest.mesh.ui.view.UserSwitcherView
 import com.barghest.mesh.ui.view.onboarding.OnboardingScreen
 import com.barghest.mesh.ui.view.onboarding.QRScanStep
 import com.barghest.mesh.ui.viewModel.AppViewModel
-import com.barghest.mesh.ui.viewModel.ExitNodePickerNav
 import com.barghest.mesh.ui.viewModel.LoginWithAuthKeyViewModel
 import com.barghest.mesh.ui.viewModel.MainViewModel
 import com.barghest.mesh.ui.viewModel.MainViewModelFactory
@@ -294,7 +288,7 @@ class MainActivity : ComponentActivity() {
 
             if (rooted) {
                 builder.setTitle("Device is rooted")
-                builder.setMessage("Please contact your helpline/investigator for next steps, if this is expected, please continue")
+                builder.setMessage("Rooted devices are less secure. If this is expected, please continue; otherwise check with whoever runs the authority node")
                 builder.show()
             }
 
@@ -390,14 +384,12 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToPeerDetails = {
                                         navController.navigate("peerDetails/${it.StableID}")
                                     },
-                                    onNavigateToExitNodes = { navController.navigate("exitNodes") },
                                     onNavigateToHealth = { navController.navigate("health") },
                                     onNavigateToSearch = {
                                         viewModel.enableSearchAutoFocus()
                                         navController.navigate("search")
                                     },
                                     onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
-                                    onNavigateToCustomControl = { navController.navigate("loginWithCustomControl") },
                                     onNavigateToADBSetup = { navController.navigate("ADBSetup") },
                                     onNavigateToDeviceInfo = { navController.navigate("deviceInfo") },
                                     onUploadQR = { showQRScanFromHome = true },
@@ -406,7 +398,6 @@ class MainActivity : ComponentActivity() {
                                 SettingsNav(
                                     onNavigateToBugReport = { navController.navigate("bugReport") },
                                     onNavigateToAbout = { navController.navigate("about") },
-                                    onNavigateToDNSSettings = { navController.navigate("dnsSettings") },
                                     onNavigateToSplitTunneling = { navController.navigate("splitTunneling") },
                                     onNavigateToTailnetLock = { navController.navigate("tailnetLock") },
                                     onNavigateToSubnetRouting = { navController.navigate("subnetRouting") },
@@ -414,23 +405,8 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToManagedBy = { navController.navigate("managedBy") },
                                     onNavigateToUserSwitcher = { navController.navigate("userSwitcher") },
                                     onNavigateToPermissions = { navController.navigate("permissions") },
-                                    onNavigateToAWGSettings = { navController.navigate("awgSettings") },
                                     onBackToSettings = backTo("settings"),
                                     onNavigateBackHome = backTo("main"),
-                                )
-                            val exitNodePickerNav =
-                                ExitNodePickerNav(
-                                    onNavigateBackHome = {
-                                        if (!navController.popBackStack(route = "main", inclusive = false)) {
-                                            navController.popBackStack()
-                                        }
-                                    },
-                                    onNavigateBackToExitNodes = backTo("exitNodes"),
-                                    onNavigateToMullvad = { navController.navigate("mullvad") },
-                                    onNavigateToMullvadInfo = { navController.navigate("mullvad_info") },
-                                    onNavigateBackToMullvad = backTo("mullvad"),
-                                    onNavigateToMullvadCountry = { navController.navigate("mullvad/$it") },
-                                    onNavigateToRunAsExitNode = { navController.navigate("runExitNode") },
                                 )
                             val userSwitcherNav =
                                 UserSwitcherNav(
@@ -460,21 +436,7 @@ class MainActivity : ComponentActivity() {
                             composable("settings") {
                                 SettingsView(settingsNav = settingsNav, appViewModel = appViewModel)
                             }
-                            composable("exitNodes") { ExitNodePicker(exitNodePickerNav) }
                             composable("health") { HealthView(backTo("main")) }
-                            composable("mullvad") { MullvadExitNodePickerList(exitNodePickerNav) }
-                            composable("mullvad_info") { MullvadInfoView(exitNodePickerNav) }
-                            composable(
-                                "mullvad/{countryCode}",
-                                arguments =
-                                    listOf(navArgument("countryCode") { type = NavType.StringType }),
-                            ) {
-                                MullvadExitNodePicker(
-                                    it.arguments!!.getString("countryCode")!!,
-                                    exitNodePickerNav,
-                                )
-                            }
-                            composable("runExitNode") { RunExitNodeView(exitNodePickerNav) }
                             composable(
                                 "peerDetails/{nodeId}",
                                 arguments =
@@ -490,13 +452,11 @@ class MainActivity : ComponentActivity() {
                                     PingViewModel(),
                                 )
                             }
-                            composable("dnsSettings") { DNSSettingsView(backTo("settings")) }
                             composable("splitTunneling") { SplitTunnelAppPickerView(backTo("settings")) }
                             composable("tailnetLock") { TailnetLockSetupView(backTo("settings")) }
                             composable("subnetRouting") { SubnetRoutingView(backTo("settings")) }
                             composable("about") { AboutView(backTo("settings")) }
                             composable("mdmSettings") { MDMSettingsDebugView(backTo("settings")) }
-                            composable("awgSettings") { AWGSettingsView(backTo("settings")) }
                             composable("userSwitcher") { UserSwitcherView(userSwitcherNav) }
                             composable("permissions") {
                                 PermissionsView(
@@ -551,10 +511,9 @@ class MainActivity : ComponentActivity() {
                                 val ipnState by viewModel.ipnState.collectAsState(initial = Ipn.State.NoState)
                                 val vpnActive by appViewModel.vpnActive.collectAsState(initial = false)
                                 val netmap by viewModel.netmap.collectAsState(initial = null)
-                                val prefs by viewModel.prefs.collectAsState(initial = null)
                                 // Map IPN state -> UI env once per backend change, not on every recomposition,
                                 // so MeshFlow's subtree can skip while a session streams netmap updates.
-                                val env = remember(ipnState, vpnActive, netmap, prefs, adbWifiEnabled) {
+                                val env = remember(ipnState, vpnActive, netmap, adbWifiEnabled) {
                                     val peer = netmap?.Peers?.firstOrNull()
                                     val analyst = peer?.let {
                                         MeshDefaults.analyst.copy(
@@ -562,32 +521,16 @@ class MainActivity : ComponentActivity() {
                                             ip = it.primaryIPv4Address ?: MeshDefaults.analyst.ip,
                                         )
                                     }
-                                    val exitNodeId = prefs?.activeExitNodeID ?: prefs?.selectedExitNodeID
-                                    val exitNodeName = exitNodeId?.let { id -> netmap?.Peers?.find { it.StableID == id } }?.exitNodeName
                                     MeshLiveEnv(
                                         connected = ipnState == Ipn.State.Running && vpnActive,
                                         analyst = analyst,
-                                        controlUrl = prefs?.ControlURL,
-                                        exitNodeName = exitNodeName,
                                         adbReady = adbWifiEnabled,
                                         onStartSession = { showQRScanFromHome = true },
                                         onEndSession = { viewModel.toggleVpn(desiredState = false) },
-                                        onOpenExitNodes = { navController.navigate("exitNodes") },
-                                        onOpenControlServer = { navController.navigate("loginWithCustomControl") },
-                                        onOpenDns = { navController.navigate("dnsSettings") },
                                         onOpenSplitTunnel = { navController.navigate("splitTunneling") },
-                                        onOpenObfuscation = { navController.navigate("awgSettings") },
-                                        onForgetEnrollment = { viewModel.resetAuth { } },
                                     )
                                 }
                                 MeshFlow(env = env, onExit = { moveTaskToBack(true) })
-                            }
-                            composable("loginWithCustomControl") {
-                                LoginWithCustomControlURLView(
-                                    onNavigateHome = backTo("main"),
-                                    backToSettings = backTo("main"),
-                                    onNavigateToAuthKey = { navController.navigate("loginWithAuthKey") },
-                                )
                             }
                             composable("deviceInfo") {
                                 DeviceInfoView(backTo("main"))
@@ -615,7 +558,19 @@ class MainActivity : ComponentActivity() {
                     QRScanStep(
                         onScanned = { uri ->
                             showQRScanFromHome = false
-                            processMeshUri(Uri.parse(uri))
+                            // MESHnet: a mesh:// link is the old encrypted provisioning
+                            // payload. Anything else is a MESHnet server address, paired
+                            // with the PIN shown on the analyst's screen.
+                            if (uri.startsWith("mesh://")) {
+                                processMeshUri(Uri.parse(uri))
+                            } else {
+                                pinInput { pin ->
+                                    // IPNService runs the session. It needs VPN
+                                    // consent before it can start in the foreground.
+                                    MeshnetSession.prepare(uri, pin)
+                                    viewModel.showVPNPermissionLauncherIfUnauthorized()
+                                }
+                            }
                         },
                         onSkip = { showQRScanFromHome = false },
                     )
@@ -791,9 +746,23 @@ class MainActivity : ComponentActivity() {
             false
         }
 
+    // Keeps the card live while the app is in front, e.g. when the authority node turns
+    // wireless debugging off remotely.
+    private val adbWifiObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            adbWifiEnabled = isWirelessDebuggingOn()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        contentResolver.unregisterContentObserver(adbWifiObserver)
+    }
+
     override fun onResume() {
         super.onResume()
         adbWifiEnabled = isWirelessDebuggingOn()
+        contentResolver.registerContentObserver(Settings.Global.getUriFor("adb_wifi_enabled"), false, adbWifiObserver)
         val restrictionsManager =
             this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
         lifecycleScope.launch(Dispatchers.IO) {
@@ -868,7 +837,7 @@ private fun PinEntryDialog(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = "Enter the 6-digit PIN your analyst read to you",
+                    text = "Enter the 6-digit PIN shown on the authority node",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontFamily = FontFamily.Monospace,
                     ),

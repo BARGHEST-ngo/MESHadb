@@ -11,7 +11,6 @@ package com.barghest.mesh.util
 
 import android.content.Context
 import android.util.Log
-import libtailscale.Libtailscale
 
 object TSLog {
   private lateinit var appContext: Context
@@ -65,9 +64,6 @@ object TSLog {
   }
 
   class LibtailscaleWrapper {
-    public fun sendLog(tag: String?, message: String) {
-      val logTag = tag ?: ""
-      Libtailscale.sendLog((logTag + ": " + message).toByteArray(Charsets.UTF_8))
-    }
+    public fun sendLog(tag: String?, message: String) {}
   }
 }

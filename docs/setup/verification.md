@@ -1,279 +1,134 @@
-# Verification and Testing
+# Your first session
 
-Now that you have all components set up, let's verify everything is working correctly and run your first forensic collection.
+With `meshcli` running and the app installed, this page walks through a full session: join, pair ADB, collect, clean up and disconnect.
 
-## Step 1: Check Mesh Status
+## Step 1: Admit the device
 
-On your analyst workstation, verify all nodes are connected:
+At the `meshcli>` prompt, create a PIN:
+
+```
+meshcli> pin
+PIN: 482913
+```
+
+Send the address (or QR code) and the PIN to the device owner over separate channels, and have them join from the app. When they do, `meshcli` prints:
+
+```
+device connected: Pixel 8
+```
+
+Check the session at any time with `status`:
+
+```
+meshcli> status
+Pairing: none, run 'pin' to pair a device.
+Devices: 1 connected
+    "Pixel 8"    a1b2c3d4
+```
+
+## Step 2: Pair ADB
+
+Ask the device owner to turn on Wireless debugging (the app guides them), then run:
+
+```
+meshcli> adbpair
+Using device: Pixel 8
+
+On the device:
+1. Turn on Wireless debugging
+2. Tap 'Pair device with pairing code'
+Pairing code: 123456
+Pairing port (the number after ':' under the code): 37155
+ADB pair successful
+Debug port (Wireless debugging screen, under 'IP address & Port'): 41231
+Connecting to device...
+Validating ADB session...
+Device connected. You may proceed with the acquisition: run 'adbcollect'
+```
+
+The device owner reads the pairing code and ports from their screen. Only the port numbers are needed; ignore the IP address shown on the device.
+
+`adbpair` bridges each port through the tunnel to a local port on `127.0.0.1` inside the analyst container, so `adb` sees the device as `127.0.0.1:<port>`.
+
+## Step 3: Test ADB
+
+In a second terminal, open a shell in the analyst container:
 
 ```bash
-# Enter interactive shell in the analyst container
-task analyst
-
-# Check mesh status
-meshcli status
+task shell
 ```
-
-**Example output:**
-
-```
-IP         DNS Name                   OS      Relay Hostname
-100.64.0.1 analyst-client.mesh.local. -       -     analyst-client
-100.64.0.2 android-device.mesh.local. android nyc   android-device
-```
-
-You should see:
-
-- Your analyst workstation (e.g., `analyst-client`)
-- Your Android device (e.g., `android-device`)
-- Both assigned mesh IP addresses
-
-## Step 2: Test Connectivity
-
-### Ping the Android Device
-
-Test basic network connectivity to the Android device:
-
-```bash
-ping 100.64.2.1
-```
-
-Replace `100.64.2.1` with your Android device's actual mesh IP address.
-
-**Example output:**
-
-```
-PING 100.64.2.1 (100.64.2.1) 56(84) bytes of data.
-64 bytes from 100.64.2.1: icmp_seq=1 ttl=64 time=45.2 ms
-64 bytes from 100.64.2.1: icmp_seq=2 ttl=64 time=42.8 ms
-```
-
-!!! tip "High Latency?"
-    If you see high latency (>100ms), the connection may be using the DERP relay instead of a direct peer-to-peer connection. This is normal if both devices are behind restrictive NAT.
-
-### Check Connection Type
-
-See if you have a direct peer-to-peer connection or are using the DERP relay:
-
-```bash
-meshcli status --json | grep -A 5 "android-device"
-```
-
-Look for the `relay` field:
-
-- If empty or shows a direct IP: You have a P2P connection ✓
-- If shows a DERP server: You're using the relay (still works, just higher latency)
-
-## Step 3: Connect via ADB
-
-The Android device should automatically enable ADB-over-WiFi on its mesh IP. Let's connect to it.
-
-### Connect to the Device
-
-```bash
-adb connect 100.64.2.1:5555
-```
-
-Replace `100.64.2.1` with your Android device's mesh IP.
-
-**Example output:**
-
-```
-connected to 100.64.2.1:5555
-```
-
-### Verify ADB Connection
 
 ```bash
 adb devices
-```
+# List of devices attached
+# 127.0.0.1:43517    device
 
-**Example output:**
-
-```
-List of devices attached
-100.64.2.1:5555    device
-```
-
-!!! success "ADB Connected"
-    If you see your device listed, you now have remote ADB access over the mesh!
-
-### Run a Test Command
-
-```bash
-# Get device model
 adb shell getprop ro.product.model
-
-# Get Android version
 adb shell getprop ro.build.version.release
-
-# List installed packages
-adb shell pm list packages | head -10
 ```
 
-## Step 4: Run a Forensic Collection
+!!! success "ADB connected"
+    If the device is listed, you have remote ADB access over the tunnel.
 
-Now let's run some basic forensic collection commands to verify everything works.
+## Step 4: Run an acquisition
 
-### Collect a Bug Report
+Back at the `meshcli>` prompt:
 
-```bash
-# Collect a full bug report
-adb bugreport bugreport.zip
+```
+meshcli> adbcollect
 ```
 
-This creates a comprehensive bug report containing system logs, diagnostics, and configuration.
+`adbcollect` runs an AndroidQF/WARD acquisition into a new folder under `/home/mesh/acquisitions`, which is `~/mesh-acquisitions` on the host unless you set `ACQUISITION_DIR`. See [Acquisitions and evidence handling](../user-guide/acquisitions.md) for options and for analysing the result with MVT.
 
-!!! info "Bug Report Time"
-    Bug reports can take 1-2 minutes to generate. Wait for the command to complete.
+## Step 5: Clean up and disconnect
 
-### Get System Information
+Run these **after** the acquisition, in this order:
 
-```bash
-# Dump all system services
-adb shell dumpsys > dumpsys.txt
-
-# Get running processes
-adb shell ps > processes.txt
-
-# Get installed packages
-adb shell pm list packages -f > packages.txt
+```
+meshcli> adbclean
+meshcli> adbdisable
+meshcli> disconnect
 ```
 
-### Collect Logs
+- `adbclean` clears logcat buffers and shell-accessible telemetry left by the session. Running it earlier destroys evidence
+- `adbdisable` turns off Developer options and Wireless debugging, so the device is not left open to non-consensual extraction
+- `disconnect` ends the device's session
 
-```bash
-# Get system logs
-adb logcat -d > logcat.txt
+Type `exit` to stop `meshcli`.
 
-# Get kernel logs
-adb shell dmesg > dmesg.txt
-```
+## Checklist
 
-### Pull Files from Device
-
-```bash
-# Create output directory
-mkdir -p ./artifacts
-
-# Pull system build info
-adb pull /system/build.prop ./artifacts/
-
-# Pull package list
-adb shell pm list packages -f > ./artifacts/packages.txt
-```
-
-## Step 5: Run AndroidQF (Optional)
-
-If you have AndroidQF installed, you can run automated spyware detection:
-
-```bash
-# Run AndroidQF against the mesh-connected device
-androidqf --adb 100.64.2.1:5555 --output ./artifacts/
-```
-
-AndroidQF will:
-
-- Collect installed packages
-- Check for known spyware indicators
-- Extract system information
-- Generate a report
-
-!!! tip "Installing AndroidQF"
-    If you don't have AndroidQF installed, see the [AndroidQF documentation](https://github.com/mvt-project/androidqf) for installation instructions.
-
-## Verification Checklist
-
-Confirm all of the following are working:
-
-- [ ] Control plane is running (`docker ps` shows headscale containers)
-- [ ] Can ping Android device over mesh IP
-- [ ] Can connect via ADB over mesh IP
-- [ ] Can run ADB commands successfully
-- [ ] Can collect forensic artifacts
-
-!!! success "Setup Complete!"
-    If all items are checked, your MESH network is fully operational and ready for forensic investigations!
+- [ ] `meshcli` printed `device connected`
+- [ ] `adbpair` finished with `Device connected`
+- [ ] `adb devices` in `task shell` lists the device
+- [ ] `adbcollect` wrote an acquisition to the host
+- [ ] `adbclean`, `adbdisable` and `disconnect` ran, in that order
 
 ## Troubleshooting
 
-### Can't Ping Android Device
+### `adbpair` fails to pair
 
-**Check both nodes are online:**
+- The pairing code changes each time the **Pair device with pairing code** dialog opens. Make sure the code and port are from the dialog currently on screen
+- The pairing port is the number after `:` **under the code**, not the port on the main Wireless debugging screen
 
-```bash
-meshcli status
-```
+### `adbpair` pairs but fails to connect
 
-**Check firewall rules:**
+- The debug port is the one on the main Wireless debugging screen, under **IP address & Port**. It changes whenever Wireless debugging is toggled
+- Check Wireless debugging is still on. Some devices turn it off when Wi-Fi changes
 
-Some networks block ICMP (ping). Try ADB connection instead - it uses TCP which is more likely to work.
+### The device disconnects
 
-**Check DERP relay:**
+A lost connection is a finished session. Run `pin` again and have the device rejoin, then run `adbpair` again.
 
-If direct P2P fails, MESH should fall back to DERP relay. Check control plane logs:
-
-```bash
-docker compose logs headscale | grep DERP
-```
-
-### ADB Connection Fails
-
-**Error: "Connection refused"**
-
-1. Verify ADB is enabled in the MESH app on Android
-2. Check the mesh IP address is correct
-3. Ensure port 5555 is not blocked
-
-**Error: "Connection timed out"**
-
-1. Verify the Android device is online in the mesh
-2. Try pinging the device first
-3. Check if the device's firewall is blocking port 5555
-
-**Fix: Restart ADB**
-
-```bash
-adb kill-server
-adb start-server
-adb connect 100.64.2.1:5555
-```
-
-### No Devices Showing in Mesh
-
-**On analyst workstation:**
-
-```bash
-# Check daemon is running
-ps aux | grep mesh
-
-# Check connection status
-meshcli status
-
-# Try reconnecting
-meshcli down
-meshcli up --login-server=https://your-domain.com --authkey=YOUR_KEY
-```
-
-**On control plane:**
-
-```bash
-# Check registered nodes
-docker compose exec headscale headscale nodes list
-
-# Check logs
-docker compose logs headscale
-```
+See the [Troubleshooting guide](../reference/troubleshooting.md) for more.
 
 ## Next steps
 
-Congratulations! You now have a fully functional MESH network for mobile forensics. Here's what to explore next:
-
-- **[User guide](../user-guide/user-guide.md)** - Learn forensic workflows and best practices
-- **[AmneziaWG Configuration](../advanced/amneziawg.md)** - Enable censorship resistance
-- **[CLI reference](../reference/cli-reference.md)** - Complete command documentation
-- **[Architecture](../overview/architecture.md)** - Understand how MESH works under the hood
+- **[User guide](../user-guide/user-guide.md)** - Forensic workflows and best practices
+- **[Exit node and packet capture](../advanced/exit-node-pcap.md)** - Capture the device's network traffic
+- **[CLI reference](../reference/cli-reference.md)** - Every `meshcli` command
+- **[Architecture](../overview/architecture.md)** - How MESHadb works under the hood
 
 ---
 
-← [Previous: Endpoint client Setup](endpoint-client.md)
+← [Previous: Android app](endpoint-client.md)

@@ -34,7 +34,7 @@ fun showDevNotification(context: Context) {
     val notification = NotificationCompat.Builder(context, UninitializedApp.CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle("MESH: Developer Options enabled")
-        .setContentText("If no forensics session is occuring, please disable for your own security")
+        .setContentText("If you are not in a MESH session, please disable them for your own security")
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setAutoCancel(true)
         .build()

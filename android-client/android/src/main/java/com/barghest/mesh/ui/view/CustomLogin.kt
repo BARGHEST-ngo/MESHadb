@@ -23,12 +23,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,7 +50,6 @@ import com.barghest.mesh.ui.view.mesh.Eyebrow
 import com.barghest.mesh.ui.view.mesh.MeshButton
 import com.barghest.mesh.ui.view.mesh.MeshTopBar
 import com.barghest.mesh.ui.viewModel.LoginWithAuthKeyViewModel
-import com.barghest.mesh.ui.viewModel.LoginWithCustomControlURLViewModel
 
 data class LoginViewStrings(
     val title: String,
@@ -60,56 +57,6 @@ data class LoginViewStrings(
     val inputTitle: String,
     val placeholder: String,
 )
-
-@Composable
-fun LoginWithCustomControlURLView(
-    onNavigateHome: () -> Unit,
-    backToSettings: () -> Unit,
-    onNavigateToAuthKey: () -> Unit,
-    viewModel: LoginWithCustomControlURLViewModel = LoginWithCustomControlURLViewModel()
-) {
-    val error by viewModel.errorDialog.collectAsState()
-    val successMessage by viewModel.successMessage.collectAsState()
-
-    // Show success dialog when control plane is added
-    successMessage?.let { message ->
-        AlertDialog(
-            onDismissRequest = { viewModel.clearSuccessMessage() },
-            title = { Text("Success") },
-            text = {
-                Column {
-                    Text(message)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Now use a pre-auth key to connect to your MESH network.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.proceedToAuthKey(onNavigateToAuthKey) }) {
-                    Text("Use Pre-Auth Key")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.clearSuccessMessage() }) { Text("Later") }
-            }
-        )
-    }
-
-    error?.let { ErrorDialog(type = it, action = { viewModel.errorDialog.set(null) }) }
-
-    LoginScaffold(
-        onBack = backToSettings,
-        strings = LoginViewStrings(
-            title = stringResource(id = R.string.custom_control_menu),
-            explanation = stringResource(id = R.string.custom_control_menu_desc),
-            inputTitle = stringResource(id = R.string.custom_control_url_title),
-            placeholder = stringResource(id = R.string.custom_control_placeholder),
-        ),
-        onSubmitAction = { viewModel.setControlURL(it, onNavigateHome) },
-    )
-}
 
 @Composable
 fun LoginWithAuthKeyView(
@@ -132,7 +79,7 @@ fun LoginWithAuthKeyView(
     )
 }
 
-/** Shared login form for the control-server and auth-key screens. */
+/** Login form for the auth-key screen. */
 @Composable
 private fun LoginScaffold(
     onBack: () -> Unit,

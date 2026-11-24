@@ -1,325 +1,84 @@
-# Endpoint Client Setup (Android)
+# Android app setup
 
-The endpoint client runs on mobile devices and enables remote forensic collection over the mesh network.
+The MESHadb app runs on the device being examined. It joins the analyst's session and lets the analyst reach the device's Wireless debugging over the encrypted tunnel. On the device, the app is labelled **MESH**.
 
 !!! info "Current support is limited to Android"
-    We currently only support Android forensics acquisitions
+    Remote ADB needs Android 11 or later, the first version with Wireless debugging.
 
-## Step 1: Build the APK or download pre-compiled
+## Step 1: Install the app
 
-**Download**
+The device owner installs the app from one of:
 
-Download the APK from [GitHub Releases](https://github.com/BARGHEST-ngo/mesh/releases) page.
+- [Google Play](https://play.google.com/store/apps/details?id=com.barghest.mesh)
+- [F-Droid](https://f-droid.org/en/packages/com.barghest.mesh/)
+- The APK on [GitHub Releases](https://github.com/BARGHEST-ngo/MESHadb/releases)
 
-**Building from source**
+Installing from a store is simplest for a remote device owner. If you use the APK, they will need to allow installation from their browser or file manager when Android asks, and should turn that permission off again afterwards.
 
-```bash
-# Build the release APK
-task buildAndroidRelease
-```
-
-The APK will be created at:
-
-```
-android-client/mesh-release-unsigned.apk
-```
-
-!!! tip "Build Time"
-    The first build may take 10-15 minutes as Gradle downloads dependencies. Subsequent builds will be faster.
-
-## Step 2: Install on Android device
-
-!!! info "App is still in Alpha"
-    We're still in public Alpha, so we haven't launched the app on Google Playstore or F-Droid yet.
-
-Since the MESH app is not available on Google Play Store or F-Droid, you'll need to install it manually using one of the following methods:
-
-### Method 1: Transfer via USB (Recommended)
-
-This is the most reliable method for installing the APK.
-
-**1. Enable USB debugging on the Android device:**
-
-1. Open **Settings** on your Android device
-2. Navigate to **About phone**
-3. Tap **Build number** 7 times to enable Developer options
-4. Go back to **Settings** → **System** → **Developer options**
-5. Enable **USB debugging**
-
-**2. Connect the device to your computer:**
+### Building from source
 
 ```bash
-# Connect your Android device via USB cable
-# Verify the device is detected
-adb devices
+make -C android-client apk
 ```
 
-You should see your device listed. If prompted on the device, tap **"Allow"** to authorise USB debugging.
+The build downloads the pinned MESHnet Android library and checks its SHA-256 before compiling. See [Build orchestration](../reference/build-deploy/build-orchestration.md) for release builds.
 
-**3. Install the APK:**
+## Step 2: Join the session
 
-```bash
-# Install the APK using ADB
-adb install mesh-release-unsigned.apk
+Before the device owner joins, agree with them on what you will do during the session. The app walks them through this consent step the first time it opens.
 
-# Or if you downloaded from GitHub
-adb install mesh-0.1.1-alpha.apk
-```
+1. On the analyst, run `pin` at the `meshcli>` prompt
+2. Send the device owner the session address or QR code, and the PIN, over separate channels, at least one of them end-to-end encrypted such as Signal
+3. The device owner opens the app, scans the QR code (or enters the address), and enters the PIN when asked
+4. When the device joins, `meshcli` prints `device connected: <device name>`
 
-**4. Verify installation:**
+!!! warning "PINs are single-use"
+    A PIN admits one device and expires after 10 minutes. Three wrong guesses cancel the pairing. If the device drops off later, it must rejoin with a new PIN.
 
-```bash
-# Check if the app is installed
-adb shell pm list packages | grep mesh
-```
+## Step 3: Turn on Wireless debugging
 
-### Method 2: Transfer via file sharing (WiFi/Bluetooth)
+The app shows a **Set up wireless debugging** card that guides the device owner:
 
-If you don't have a USB cable or prefer wireless transfer:
+1. Open **Settings → About phone**
+2. Tap **Build number** 7 times, entering the device PIN if asked
+3. Open **Settings → System → Developer options**
+4. Switch on **Wireless debugging**
 
-**1. Enable installation from unknown sources:**
+The app's **Open settings** button jumps straight to Developer options. Wireless debugging needs a Wi-Fi connection on most devices.
 
-1. Open **Settings** on your Android device
-2. Navigate to **Security** or **Privacy**
-3. Find **Install unknown apps** or **Unknown sources**
-4. Select your file manager app (e.g., Files, Downloads)
-5. Enable **Allow from this source**
+## Step 4: Grant VPN permission (only for forwarding)
 
-!!! warning "Security consideration"
-    Only enable installation from unknown sources temporarily, and disable it after installing MESH.
+If you later run `forward on` to route the device's traffic through the analyst, Android asks the device owner to allow the app to set up a VPN connection. Tap **OK**. Without it, forwarding cannot start. See [Exit node and packet capture](../advanced/exit-node-pcap.md).
 
-**2. Transfer the APK to your device:**
+## Ending the session
 
-Choose one of these methods:
-
-**Option A: Email**
-
-- Email the APK to yourself
-- Open the email on your Android device
-- Download the attachment
-
-**Option B: Cloud storage**
-
-- Upload the APK to Google Drive, Dropbox, or similar
-- Download it on your Android device
-
-**Option C: Direct WiFi transfer**
-
-- Use a file transfer app like [LocalSend](https://localsend.org/) or [KDE Connect](https://kdeconnect.kde.org/)
-- Transfer the APK wirelessly
-
-**Option D: Bluetooth**
-
-- Send the APK via Bluetooth from your computer
-- Accept the file on your Android device
-
-**3. Install the APK:**
-
-1. Open your **Files** or **Downloads** app on the Android device
-2. Navigate to where you saved the APK
-3. Tap on the **APK file**
-4. Tap **"Install"**
-5. Wait for the installation to complete
-6. Tap **"Open"** or find the MESH app in your app drawer
-
-### Method 3: Install via ADB over WiFi (Advanced)
-
-If you want to install without a USB cable and have already enabled USB debugging:
-
-**1. Connect device and computer to the same WiFi network**
-
-**2. Enable ADB over WiFi on the device:**
-
-```bash
-# First connect via USB
-adb devices
-
-# Enable TCP/IP mode on port 5555
-adb tcpip 5555
-
-# Disconnect USB cable
-```
-
-**3. Find your device's IP address:**
-
-On the Android device:
-
-1. Go to **Settings** → **About phone** → **Status** → **IP address**
-2. Note the IP address (e.g., `192.168.1.100`)
-
-**4. Connect via WiFi:**
-
-```bash
-# Connect to the device over WiFi
-adb connect 192.168.1.100:5555
-
-# Verify connection
-adb devices
-```
-
-**5. Install the APK:**
-
-```bash
-# Install the APK wirelessly
-adb install mesh-release-unsigned.apk
-```
-
-### Troubleshooting installation
-
-**"App not installed" error:**
-
-- Ensure you have enough storage space (at least 100MB free)
-- Try uninstalling any previous version of MESH first
-- Reboot your device and try again
-
-**"Installation blocked" error:**
-
-- Make sure you've enabled installation from unknown sources
-- Check that the APK file downloaded completely (not corrupted)
-- Verify the APK is compatible with your Android version (8.0+)
-
-**ADB device not found:**
-
-- Ensure USB debugging is enabled
-- Try a different USB cable or port
-- Install the appropriate USB drivers for your device
-- Revoke USB debugging authorisations and try again
-
-## Step 3: Configure the app
-
-Now configure the MESH app on your Android device.
-
-### Open the app
-
-1. On your Android device, open the app drawer
-2. Find and tap the **MESH** app icon
-3. You'll see the connection screen
-
-### Connect to the mesh
-
-1. Tap **"Connect to Network"**
-2. Enter your **Control plane URL**: `https://your-domain.com`
-3. Enter the **Pre-auth key** (obtained from control plane)
-4. Tap **"Connect"**
-
-!!! important "Replace values"
-    Replace `your-domain.com` with your actual control plane URL
-
-### Grant permissions
-
-The app will request VPN permissions:
-
-1. Android will show a connection request dialogue
-2. Tap **"OK"** to allow MESH to create a VPN connection
-3. The app will establish a connection to the mesh
-
-!!! info "VPN permission"
-    MESH uses Android's VPN API to create the mesh network interface. This is required for the app to function.
-
-## Step 4: Verify connection
-
-### Check connection status
-
-In the MESH app, you should see:
-
-- **Status**: Connected
-- **Mesh IP**: Your assigned IP address (e.g., `100.64.2.1`)
-- **Peers**: Number of connected peers
-
-### Enable ADB over WiFi
-
-The MESH app automatically enables ADB-over-WiFi on the mesh interface. This allows remote forensic collection.
-
-**Verify ADB is enabled:**
-
-1. In the MESH app, check the **ADB Status** section
-2. It should show: **"ADB enabled on 100.64.2.1:5555"**
-
-!!! success "Ready for forensics"
-    Your Android device is now connected to the mesh and ready for remote forensic collection!
-
-## Step 5: Test from analyst workstation
-
-From your analyst workstation, verify you can see the Android device:
-
-```bash
-# List all peers
-meshcli status
-```
-
-You should see your Android device listed with its mesh IP address.
+The device owner can end the session at any time from the app. The analyst can end it with `disconnect`, or by stopping `meshcli`. Either way the tunnel is gone, and a new session needs a new PIN.
 
 ## Troubleshooting
 
-### App won't install
+### The app won't install
 
-**Error: "App not installed"**
+- Check the device has enough free storage
+- Uninstall any previous version first
+- If installing the APK, check that installation from that source is allowed
 
-- Ensure USB debugging is enabled on the device
-- Check that the device is authorised (check phone screen for prompt)
-- Try uninstalling any existing version first
+### The device can't join
 
-**Error: "INSTALL_PARSE_FAILED"**
+- Check the PIN has not expired (10 minutes) or already been used. Run `pin` again for a new one
+- Check the address was copied in full, or rescan the QR code. `qr` at the `meshcli>` prompt shows it again, and `qr -o file.png` saves it as an image
+- Check the device has internet access
 
-The APK may be corrupted. Try rebuilding:
+### Wireless debugging is missing
 
-```bash
-task clean && task buildAndroidRelease
-```
+- Make sure the device runs Android 11 or later
+- Some managed or custom ROM devices disable Developer options. Check with the device owner or their administrator
 
-### Can't connect to control plane
-
-**"Connection failed" error:**
-
-1. Verify the control plane URL is correct
-2. Check that the device has internet connectivity (WiFi or mobile data)
-3. Verify the pre-auth key is valid and not expired
-4. Check control plane logs: `docker compose logs headscale`
-
-**"Invalid auth key" error:**
-
-- The pre-auth key may have expired
-- Create a new pre-auth key in the control plane web UI
-- Make sure you're using a reusable key if connecting multiple devices
-
-### VPN permission denied
-
-If Android won't grant VPN permission:
-
-1. Go to **Settings** → **Apps** → **MESH**
-2. Check that all permissions are granted
-3. Try uninstalling and reinstalling the app
-
-### ADB not enabled
-
-If ADB-over-WiFi doesn't enable automatically:
-
-1. Check the MESH app settings
-2. Verify the device is connected to the mesh (check mesh IP)
-3. Try toggling the ADB option in the app settings
-
-### Device not visible from analyst
-
-If the analyst workstation can't see the Android device:
-
-```bash
-# Check if both nodes are online
-meshcli status
-
-# Try pinging the device
-ping 100.64.2.1  # Replace with actual mesh IP
-```
-
-If ping fails:
-
-- Both devices may be behind restrictive NAT (MESH will use DERP relay)
-- Check control plane logs for connection issues
-- Verify firewall rules allow UDP traffic
+See the [Troubleshooting guide](../reference/troubleshooting.md) for more.
 
 ## Next steps
 
-Your endpoint client is now connected to the mesh! The next step is to verify connectivity and run your first forensic collection.
+The app is installed and the device owner knows how to join. Next, run your first session end to end.
 
 ---
 
-← [Previous: Analyst client Setup](analyst-client.md) | [Next: Verification](verification.md) →
+← [Previous: Analyst client](analyst-client.md) | [Next: First session](verification.md) →

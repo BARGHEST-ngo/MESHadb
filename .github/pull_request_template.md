@@ -20,14 +20,14 @@
 > Integration tests and end-to-end functional tests are not fully implemented yet. Complete the applicable items below.
 
 - [ ] Manual testing not needed (docs/comment-only change)
-- [ ] Core MESH flow verified where relevant (control plane, enrollment, connectivity, forensics, ADB pairing)
+- [ ] Core session flow verified where relevant (start, PIN, join, connectivity, ADB pairing, forensics, forwarding/capture)
 - [ ] Android client flow verified where relevant (install/upgrade, connect/disconnect, permissions/background behavior)
 - [ ] CLI / analyst tooling verified where relevant (affected `meshcli` commands, flags, output, error paths)
 - [ ] Cross-platform / backward-compatibility checks completed where relevant
 
 ## Security considerations
 
-- [ ] Auth, ACL, network exposure, and transport-security implications were reviewed
+- [ ] Pairing/admission, device exposure (ADB streams, forwarding), and transport-security implications were reviewed
 - [ ] No secrets, keys, tokens, private certs, or sensitive data were added to the repo, logs, screenshots, or PR text
 - [ ] New or updated dependencies were reviewed for necessity and known risk/vulnerabilities
 - [ ] Input validation, error handling, and logs do not leak sensitive information

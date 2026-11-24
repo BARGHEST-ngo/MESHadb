@@ -60,7 +60,6 @@ fun SettingsView(
   val user by viewModel.loggedInUser.collectAsState()
   val isAdmin by viewModel.isAdmin.collectAsState()
   val tailnetLockEnabled by viewModel.tailNetLockEnabled.collectAsState()
-  val corpDNSEnabled by viewModel.corpDNSEnabled.collectAsState()
   val isVPNPrepared by appViewModel.vpnPrepared.collectAsState()
   val showTailnetLock by MDMSettings.manageTailnetLock.flow.collectAsState()
 
@@ -83,25 +82,10 @@ fun SettingsView(
 
           Lists.SectionDivider()
           Setting.Text(
-              R.string.dns_settings,
-              subtitle =
-                  corpDNSEnabled?.let {
-                    stringResource(
-                        if (it) R.string.using_mesh_dns else R.string.not_using_mesh_dns)
-                  },
-              onClick = settingsNav.onNavigateToDNSSettings)
-
-          Lists.ItemDivider()
-          Setting.Text(
               R.string.split_tunneling,
               subtitle = stringResource(R.string.exclude_certain_apps_from_using_tailscale),
               onClick = settingsNav.onNavigateToSplitTunneling)
 
-          Lists.ItemDivider()
-          Setting.Text(
-              R.string.awg_settings,
-              subtitle = stringResource(R.string.awg_settings_subtitle),
-              onClick = settingsNav.onNavigateToAWGSettings)
 
           if (showTailnetLock.value == ShowHide.Hide) {
               Lists.ItemDivider()
@@ -191,9 +175,8 @@ fun AdminTextView(onNavigateToAdminConsole: () -> Unit) {
 @Composable
 fun SettingsPreview() {
   val vm = SettingsViewModel()
-  vm.corpDNSEnabled.set(true)
   vm.tailNetLockEnabled.set(true)
   vm.isAdmin.set(true)
   vm.managedByOrganization.set("")
-  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
+  SettingsView(SettingsNav({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}), vm)
 }

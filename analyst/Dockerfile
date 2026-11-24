@@ -1,30 +1,21 @@
-FROM golang:1.26.10-alpine@sha256:5cb67f19c5e7994dcb80c074f7cfca8aeeada45bbdca035f73df269cefdcce61 AS build
-
-RUN apk add --no-cache git patch
+FROM golang:1.27.4-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS build
 
 WORKDIR /usr/src/app
 
-# Disable workspace so each module resolves independently
+# Disable workspace so the analyst resolves on its own
 ENV GOWORK=off
 
-# Cache root module deps (used by tailscale submodule build)
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Cache analyst module deps separately
-COPY tailscale/go.mod tailscale/go.sum ./tailscale/
+# Cache analyst module deps
 COPY analyst/go.mod analyst/go.sum ./analyst/
 RUN cd analyst && go mod download
 
 COPY analyst ./analyst
-COPY tailscale ./tailscale
 RUN ./analyst/src/build.sh
 
 FROM debian:trixie-slim@sha256:4e401d95de7083948053197a9c3913343cd06b706bf15eb6a0c3ccd26f436a0e
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         adb \
-        iptables \
         iproute2 \
         iputils-ping \
         libcap2-bin \
@@ -36,10 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && useradd  --system --uid 1000 --gid 1000 \
                 --create-home --home-dir /home/mesh \
                 --shell /bin/bash mesh \
-    && mkdir -p /home/mesh/.tailscale \
     && mkdir -p /home/mesh/acquisitions \
     && chown -R mesh:mesh /home/mesh \
-    && setcap cap_net_admin,cap_net_raw+eip /usr/bin/tcpdump
+    && setcap cap_net_raw+eip /usr/bin/tcpdump
 
 # MVT (Mobile Verification Toolkit) for offline analysis of adbcollect output:
 # Installed into a venv so the Debian-managed python3 stays untouched,
@@ -58,15 +48,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV PATH="/opt/mvt/bin:$PATH"
 
-COPY --from=build       /usr/src/app/analyst/tailscaled  /usr/bin/tailscaled
-COPY --from=build       /usr/src/app/analyst/tailscale   /usr/bin/tailscale
-COPY --from=build       /usr/src/app/analyst/mesh        /usr/bin/mesh
+COPY --from=build       /usr/src/app/analyst/mesh        /usr/bin/meshcli
 COPY --chmod=755        analyst/entrypoint.sh            /usr/bin/entrypoint.sh
-COPY --chown=mesh:mesh  analyst/bashrc                   /home/mesh/.bashrc
-COPY                    analyst/amneziawg.conf.example   /etc/mesh/amneziawg.conf.example
 
 #entrypoint.sh fixes its ownership before dropping
 #privileges, since bind mounts arrive root-owned.
 WORKDIR /home/mesh/acquisitions
 
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]
+CMD ["meshcli"]

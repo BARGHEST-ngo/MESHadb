@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -61,10 +62,9 @@ private fun SettingRow(
     icon: String,
     title: String,
     sub: String? = null,
-    danger: Boolean = false,
     onClick: (() -> Unit)? = null,
     control: @Composable () -> Unit = {
-        MeshIcon("chevR", size = 17.dp, color = if (danger) MaterialTheme.colorScheme.meshRed else MaterialTheme.colorScheme.meshMuted)
+        MeshIcon("chevR", size = 17.dp, color = MaterialTheme.colorScheme.meshMuted)
     },
 ) {
     val cs = MaterialTheme.colorScheme
@@ -74,9 +74,7 @@ private fun SettingRow(
         icon = icon,
         title = title,
         sub = sub,
-        iconTint = if (danger) cs.meshRed else cs.accent,
-        iconBg = if (danger) cs.meshRedDim else cs.accentDim(0.13f),
-        titleColor = if (danger) cs.meshRed else cs.meshText,
+        iconBg = cs.accentDim(0.13f),
         spacing = 13.dp,
         trailing = control,
     )
@@ -87,7 +85,7 @@ private fun Group(label: String, content: @Composable () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Column(Modifier.padding(bottom = 18.dp)) {
         Eyebrow(label, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
-        Column(Modifier.fillMaxWidth().background(cs.meshCard, RoundedCornerShape(MeshRadii.card)).border(1.dp, cs.meshBorder, RoundedCornerShape(MeshRadii.card))) {
+        Column(Modifier.fillMaxWidth().background(cs.meshCard, RoundedCornerShape(MeshRadii.card))) {
             content()
         }
     }
@@ -95,13 +93,7 @@ private fun Group(label: String, content: @Composable () -> Unit) {
 
 /** Live Settings wiring. */
 data class MeshSettingsLive(
-    val controlUrl: String?,
-    val onOpenControlServer: () -> Unit,
-    val onOpenExitNodes: () -> Unit,
-    val onOpenDns: () -> Unit,
     val onOpenSplitTunnel: () -> Unit,
-    val onOpenObfuscation: () -> Unit,
-    val onForgetEnrollment: () -> Unit,
 )
 
 @Composable
@@ -112,26 +104,13 @@ fun MeshSettingsScreen(onBack: () -> Unit, live: MeshSettingsLive) {
     Column(Modifier.fillMaxSize().background(cs.meshBg)) {
         MeshTopBar(stringResource(R.string.mesh_topbar_settings), onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Group(stringResource(R.string.mesh_set_group_connection)) {
-                SettingRow("globe", stringResource(R.string.mesh_set_control_server), live.controlUrl?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.mesh_set_not_configured), onClick = live.onOpenControlServer)
-                MeshDivider()
-                SettingRow("globe", stringResource(R.string.mesh_set_exit_node), stringResource(R.string.mesh_set_exit_node_sub), onClick = live.onOpenExitNodes)
-            }
             Group(stringResource(R.string.mesh_set_group_network)) {
-                SettingRow("globe", stringResource(R.string.mesh_set_magic_dns), stringResource(R.string.mesh_set_magic_dns_sub), onClick = live.onOpenDns)
-                MeshDivider()
                 SettingRow("grid", stringResource(R.string.mesh_set_split), stringResource(R.string.mesh_set_split_sub), onClick = live.onOpenSplitTunnel)
-            }
-            Group(stringResource(R.string.mesh_set_group_privacy)) {
-                SettingRow("eyeOff", stringResource(R.string.mesh_set_obfuscation), stringResource(R.string.mesh_set_obfuscation_sub), onClick = live.onOpenObfuscation)
             }
             Group(stringResource(R.string.mesh_set_group_about)) {
                 SettingRow("info", stringResource(R.string.mesh_set_version, AppVersion.Short()), stringResource(R.string.mesh_set_source), onClick = { uriHandler.openUri(Links.SOURCE_REPO_URL) })
                 MeshDivider()
                 SettingRow("file", stringResource(R.string.mesh_set_license), stringResource(R.string.mesh_set_license_sub), onClick = { uriHandler.openUri(Links.LICENSE_URL) })
-            }
-            Group(stringResource(R.string.mesh_set_group_danger)) {
-                SettingRow("x", stringResource(R.string.mesh_set_forget), stringResource(R.string.mesh_set_forget_sub), danger = true, onClick = live.onForgetEnrollment)
             }
             Text(stringResource(R.string.mesh_set_footer), color = cs.meshMuted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center)
         }
@@ -160,22 +139,33 @@ fun MeshLearnScreen(onBack: () -> Unit, onStart: () -> Unit) {
                 color = cs.meshText2, fontSize = 14.5.sp, lineHeight = 22.sp,
             )
             Spacer(Modifier.height(22.dp))
-            steps.forEachIndexed { i, s ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // One solid card, like the wireless debugging steps: borderless icon tiles, even rows.
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(MeshRadii.card))
+                    .background(cs.meshCard)
+                    .padding(vertical = 6.dp),
+            ) {
+                steps.forEach { s ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
                         Box(
-                            Modifier.size(42.dp).background(cs.accentDim(0.14f), RoundedCornerShape(13.dp)).border(1.dp, cs.accentDim(0.3f), RoundedCornerShape(13.dp)),
+                            Modifier.size(36.dp).background(cs.accentDim(0.14f), RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center,
-                        ) { MeshIcon(s.icon, size = 20.dp, color = cs.accent) }
-                        if (i < steps.lastIndex) Box(Modifier.padding(vertical = 6.dp).width(1.5.dp).height(22.dp).background(cs.meshBorder))
-                    }
-                    Column(Modifier.padding(bottom = if (i < steps.lastIndex) 0.dp else 22.dp)) {
-                        Text(stringResource(s.titleRes), color = cs.meshText, fontSize = 15.5.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(4.dp))
-                        Text(stringResource(s.bodyRes), color = cs.meshText2, fontSize = 13.sp, lineHeight = 19.sp)
+                        ) { MeshIcon(s.icon, size = 19.dp, color = cs.accent) }
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(s.titleRes), color = cs.meshText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp)
+                            Spacer(Modifier.height(3.dp))
+                            Text(stringResource(s.bodyRes), color = cs.meshText2, fontSize = 13.sp, lineHeight = 19.sp)
+                        }
                     }
                 }
             }
+            Spacer(Modifier.height(20.dp))
         }
         MeshBottomBar {
             MeshButton(stringResource(R.string.mesh_start_cta), onStart, full = true, height = 56.dp, icon = "shield")

@@ -1,239 +1,93 @@
-# Architecture Overview
+# Architecture
 
-MESH consists of three main components that work together to create a secure, censorship-resistant forensic network.
-
-## System Components
+MESHadb has two components: the **analyst client** (`meshcli`) on your computer and the **Android app** on the device. They connect over [MESHnet](https://github.com/BARGHEST-ngo/MESHnet), a peer-to-peer WireGuard protocol with no control plane. A public relay helps the two ends find each other and carries traffic only when a direct path is impossible.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      MESH network                           │
-│                                                             │
-│  ┌──────────────┐         ┌──────────────┐                  │
-│  │   Analyst    │◄───────►│   Endpoint   │                  │
-│  │   Client     │  P2P    │   Client     │                  │
-│  │ (Linux/macOS)│ Tunnel  │  (Android)   │                  │
-│  └──────────────┘         └──────────────┘                  │
-│         |                        │                          │
-│              ┌──────────────┐      Key exchange and ACL     │
-│         └ ──►│   Control    │◄─ ─┘ HTTPS relay fallback     │
-│              │    Plane     │                               │
-│              │ (Headscale)  │                               │
-│              └──────────────┘                               │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+  analyst (your computer)                               Android device
+┌────────────────────────┐  1. direct: WireGuard/UDP  ┌──────────────────┐
+│ adb ─► meshcli         │ ◄════════════════════════► │  MESHadb app     │
+│        (Authority)     │                            │  (Peer) ─► adbd  │
+└───────────┬────────────┘                            └─────────┬────────┘
+            │       2. fallback: HTTPS relay (TCP 443)          │
+            └────────────────►   DERP relay   ◄─────────────────┘
+                          (sees encrypted packets only)
 ```
 
-## 1. Control plane
+## Components
 
-The **Control plane** is a self-hosted coordination server that manages your mesh network.
+### Analyst client (`meshcli`)
 
-### What It Does
+`meshcli` runs in a Docker container on your forensic workstation. In MESHnet terms it is the **Authority**: it creates the session, issues PINs and decides what each device may do.
 
-- **Manages mesh network membership** - Tracks which nodes are part of the mesh
-- **Distributes WireGuard keys automatically** - Handles all cryptographic key exchange
-- **Enforces Access Control Lists (ACLs)** - Controls which nodes can communicate
-- **Coordinates NAT traversal** - Helps nodes establish direct P2P connections
-- **Operates DERP relays** - Provides fallback relay when P2P fails
+- Starts a MESHnet server with new keys and prints the session address as text and a QR code
+- Issues single-use PINs with `pin`
+- Bridges a local port to the device's Wireless debugging port, so `adb` can reach it (`adbpair`)
+- Runs acquisitions with AndroidQF/WARD (`adbcollect`) and clean-up (`adbclean`, `adbdisable`)
+- Grants or revokes forwarding of the device's internet traffic (`forward`) and records it (`capture`)
 
-### Technology
+The container also ships `adb`, `tcpdump`, Suricata and MVT. See [Runtime stack](../reference/build-deploy/runtime-stack.md).
 
-- Based on **Headscale** (open-source Tailscale Protocol control server)
-- Written in **Go** for performance and reliability
-- Uses **SQLite** or **PostgreSQL** for data storage
-- Deployed via **Docker** for easy management
-- Includes **Web UI** for graphical management
+### Android app
 
-### Key features
+The app is the MESHnet **Peer**. It runs on the device being examined.
 
-- **Self-hostable** - You control your own infrastructure
-- **API-driven** - Programmatic access for automation
-- **Multi-user support** - Organise nodes by user or team
-- **Pre-authentication keys** - Automated node enrollment
-- **Route management** - Control subnet routing and exit nodes
+- Joins a session by scanning the address QR code and entering the PIN
+- Guides the user to turn on Wireless debugging
+- Accepts ADB connections from the analyst and proxies them to the device's local Wireless debugging port. It refuses any other kind of connection
+- When the analyst turns forwarding on, uses Android's VPN API to send the device's internet traffic through the tunnel
 
-!!! info "Control plane setup"
-    See the [Control plane documentation](../setup/control-plane.md) for detailed setup and configuration.
+Android 11 or later is needed for Wireless debugging.
 
-## 2. Analyst client
+### Relay
 
-The **Analyst client** runs on your forensic collection node (Linux or macOS) and provides the tools to manage connections and perform investigations.
+The relay is a meeting point and a fallback, not a hub. MESHnet uses [DERP](https://github.com/tailscale/tailscale/tree/main/cmd/derper#derp) relays, via [tailcat](https://github.com/tailscale/tailcat).
 
-### What It Does
+- Both ends first connect to the relay named in the session address
+- They swap their network endpoints over it and try to punch a direct UDP path
+- If that fails, traffic stays on the relay over HTTPS on TCP port 443, still WireGuard-encrypted
 
-- **Connects to target devices** over the encrypted mesh
-- **Runs forensic tools** like ADB, AndroidQF and MVT (libimobiledevice planned for Q4 2026)
-- **Can flip to an exist node allowing network monitoring/capture** from remote devices
-- **Manages mesh network configuration** via CLI
-- **Provides secure access** to endpoint diagnostic interfaces
+!!! warning "Who runs the relays"
+    The current release uses tailcat's default relay map, which points at free, rate-limited relays run by Tailscale. They cannot decrypt traffic, but they can see both ends' IP addresses, timing and data volume. Choosing your own relays is not yet configurable.
 
-### Technology
+## A session, step by step
 
-- Based on **Tailscale Daemon** with AmneziaWG modifications
-- Written in **Go** with platform-specific integrations
-- Uses **WireGuard/AmneziaWG** for encrypted tunnels
-- Includes **meshcli** command-line interface
-- Runs **tailscaled-amnezia** daemon in background
+1. **Start** - `meshcli` starts a MESHnet server with new keys and connects to a relay. Its address holds its public key and the relay to meet at. It does **not** contain the analyst's IP address.
+2. **Create a PIN** - `pin` creates a 6-digit PIN that admits exactly one device. It expires after 10 minutes.
+3. **Share** - The analyst sends the address (or QR code) and the PIN to the device owner, over separate channels.
+4. **Join** - The app meets the analyst at the relay and the WireGuard tunnel comes up through it. Inside the tunnel, the app presents the PIN, and the analyst checks it and checks that the device's key matches the tunnel.
+5. **Find a direct path** - In parallel, both ends try UDP hole punching. If it works, traffic moves to the direct path; if not, it stays on the relay.
+6. **Pair ADB** - `adbpair` opens local ports on the analyst and bridges each one, through the tunnel, to a port on the device. `adb pair` and `adb connect` then talk to those local ports.
+7. **Work** - `adbcollect`, `adb shell`, `forward` and `capture` all run over the tunnel.
+8. **End** - `disconnect`, closing the app, or stopping `meshcli` ends the session. Nothing is persisted; a new session needs a new PIN.
 
-### Key features
+## Network details
 
-- **ADB integration** - Direct access to Android devices
-- **Automated AndroidQF collection** - Connect and collect instantly
-- **Automatic reconnection** - Maintains persistent connections
-- **Route advertisement** - Share local network access
-- **Exit node support** - Route traffic through the mesh
+### Addressing
 
-### Supported platforms
+Devices do not get a routable mesh IP address. ADB reaches the device through named streams inside the tunnel, which `meshcli` exposes as local ports on `127.0.0.1` inside the analyst container. `adb devices` therefore lists the device as `127.0.0.1:<port>`.
 
-- **Linux** - Ubuntu 20.04+, Debian 11+, Fedora 35+, and similar
-- **macOS** - macOS 11 (Big Sur) and later
+### NAT traversal
 
-!!! info "Analyst client Setup"
-    See the [Analyst client documentation](../setup/analyst-client.md) for installation and usage.
+- **Relay-assisted endpoint discovery** - Both ends learn and exchange their public endpoints through the relay
+- **UDP hole punching** - Both ends send to each other at once to open a path through NAT
+- **Relay fallback** - When hole punching fails, for example behind symmetric or carrier-grade NAT, traffic stays on the relay
 
-## 3. Endpoint client
+### Forwarding
 
-The **Endpoint client** runs on the target device being analysed (right now we only support Android).
-
-### What it does
-
-- **Joins the forensic mesh network** using pre-authentication keys
-- **Guides user to enable ADB** to be connected to over the mesh
-- **Enables remote forensic collection** without physical access
-- **Supports ephemeral connections** that leave no trace
-- **Provides secure access** to device internals
-- **Can be deployed in seconds**
-
-### Technology (Android)
-
-- Written in **Kotlin/Java** for Android platform
-- Uses **WireGuard/AmneziaWG** for encrypted tunnels
-- Integrates with **Android VPN API**
-- Guides user to enable **ADB-over-WiFi** on mesh interface
-
-!!! experimental "AmneziaWG is currently in development on the APK"
-
-### Key features
-
-- **VPN-based networking** - Uses Android VPN API for mesh interface
-- **Background operation** - Maintains connection when app is closed
-- **Battery efficient** - Minimal impact on device battery life
-- **User-friendly UI** - Simple connection and status display
-
-### Supported Platforms
-
-- **Android** - Android 8.0 (Oreo) and later
-- **iOS** - Planned for Q4 2026
-
-!!! info "Endpoint client Setup"
-    See the [Endpoint client documentation](../setup/endpoint-client.md) for installation and configuration.
-
-## How they work together
-
-### 1. Initial setup
-
-1. **Deploy Control plane** - Set up the coordination server
-2. **Create Users** - Organise nodes by user or team
-3. **Generate Pre-Auth Keys** - Create keys for automated enrollment
-
-### 2. Node enrollment
-
-1. **Analyst client** connects to control plane using pre-auth key
-2. **Endpoint client** connects to control plane using pre-auth key
-3. **Control plane** authenticates nodes and assigns mesh IP addresses
-4. **WireGuard keys** are automatically exchanged between nodes
-
-### 3. Connection establishment
-
-1. **NAT traversal** - Nodes attempt direct P2P connection via STUN
-2. **Firewall traversal** - Nodes negotiate through NAT and firewalls
-3. **DERP fallback** - If P2P fails, traffic routes through HTTPS DERP relay
-4. **Encrypted tunnel** - Secure WireGuard tunnel established
-
-### 4. Forensic operations
-
-1. **Analyst** connects to endpoint via mesh IP address
-2. **ADB/diagnostic tools** access device over encrypted tunnel
-3. **Artifacts collected** and transferred securely
-4. **Investigation completed** - Mesh can be torn down
-
-## Network architecture
-
-### Peer-to-Peer First
-
-MESH prioritizes direct peer-to-peer connections for:
-
-- **Lower latency** - Direct connections are faster
-- **Better performance** - No relay overhead
-- **Reduced bandwidth** - No unnecessary relay traffic
-- **Enhanced privacy** - Traffic doesn't pass through third parties
-
-### DERP Relay Fallback
-
-When P2P connections fail (restrictive NAT, blocked UDP), MESH automatically falls back to DERP relays:
-
-- **Encrypted relay** - End-to-end encryption maintained
-- **TCP/443 transport** - Works through firewalls
-- **Automatic failover** - Seamless transition from P2P to relay
-- **Multiple relay servers** - Distributed infrastructure for reliability
-- **Self hostable relays** - You can host your own relays or use your control plane as one
-
-### NAT Traversal
-
-MESH uses multiple techniques to establish connections through NAT:
-
-- **STUN** - Discovers public IP and port mappings
-- **Hole-punching** - Establishes direct connections through NAT
-- **UPnP/NAT-PMP** - Automatic port forwarding when available
-- **DERP relay** - Fallback when direct connection impossible
+When the analyst runs `forward on`, the app creates a VPN interface on the device and routes its internet traffic into the tunnel. The analyst's MESHnet server opens each TCP and UDP connection onward from the analyst's own network, so destination servers see the analyst's IP address. Private, link-local and carrier-grade NAT destinations are refused, so the device's local network is never reachable through the analyst. DNS queries use `1.1.1.1` while forwarding is on.
 
 ## Security model
 
-### Zero trust architecture
+- **Mutual authentication** - The PIN admits a device, and the analyst checks that the device's key matches the tunnel it presented the PIN on
+- **Encryption** - WireGuard (Curve25519, ChaCha20-Poly1305, BLAKE2s) end to end, including over the relay
+- **Least privilege** - The app only accepts ADB streams, and forwarding is off unless the analyst grants it
+- **Ephemeral** - New keys every start; single-use, time-limited PINs; no saved state
 
-- **No implicit trust** - All connections must be authenticated
-- **Mutual authentication** - Both peers verify each other
-- **Encrypted by default** - All traffic is encrypted end-to-end
-- **Least privilege** - ACLs enforce minimal necessary access
+See the [Security model](../reference/security.md) for the full picture, including what MESHadb does not protect against.
 
-### Encryption
+## Deployment model
 
-- **WireGuard protocol** - Industry-standard VPN encryption
-- **ChaCha20-Poly1305** - Authenticated encryption
-- **Curve25519** - Elliptic curve key exchange
-- **BLAKE2s** - Cryptographic hashing
-
-### Access control
-
-- **ACL policies** - Define which nodes can communicate
-- **User-based access** - Organise nodes by user or team
-- **Tag-based policies** - Flexible access control rules
-- **Port-level restrictions** - Control access to specific services
-
-!!! info "Detailed architecture"
-    For a deep dive into MESH architecture, see the [Architecture documentation](architecture.md).
-
-## Deployment models
-
-### Single investigator
-
-- One control plane
-- One analyst nodes
-- Multiple endpoint devices
-- Simple ACL policy (allow only ADB traffic)
-
-### Team investigation
-
-- One control plane
-- Multiple analyst nodes
-- Multiple endpoint devices
-- User-based ACL policies that segregate networks
-
-### Multi-site deployment
-
-- Multiple control planes (regional)
-- Distributed analyst teams
-- Geographically dispersed endpoints
-- Complex ACL policies with tags
+One analyst runs `meshcli` and one device joins its session. MESHnet currently accepts one device at a time; several devices per session is on the roadmap. Several analysts can each run their own independent session.
 
 ---
 

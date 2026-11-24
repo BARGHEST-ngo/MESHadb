@@ -1,0 +1,343 @@
+// Copyright (c) BARGHEST
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+package session
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/google/uuid"
+
+	meshnet "github.com/BARGHEST-ngo/MESHnet"
+	"github.com/tailscale/tailcat"
+)
+
+type Session struct {
+	srv  *meshnet.Server
+	out  io.Writer
+	addr string
+
+	mu      sync.Mutex
+	devices map[string]*device
+	capture *capture
+}
+
+type device struct {
+	info           meshnet.ClientInfo
+	bridges        []net.Listener
+	adbAddr        string
+	forwarding     bool
+	acquisitionDir string // "" until adbcollect or capture is first called
+	collected      bool
+}
+
+const streamOpenTimeout = 10 * time.Second
+
+func New(out io.Writer) *Session {
+	s := &Session{
+		devices: make(map[string]*device),
+		out:     out,
+	}
+	s.srv = meshnet.NewServer(meshnet.ServerConfig{
+		Forward:              true,
+		OnClientConnected:    s.connected,
+		OnClientDisconnected: s.disconnected,
+		OnMessage:            s.message,
+	})
+	return s
+}
+
+func (s *Session) Start() (string, error) {
+	addr, err := s.srv.Start()
+	if err != nil {
+		return "", err
+	}
+	s.addr = addr
+	return addr, nil
+}
+
+func (s *Session) Stop() error {
+	s.StopCapture()
+	return s.srv.Stop()
+}
+
+func (s *Session) NewPairing() (string, error) {
+	return s.srv.NewPairing()
+}
+
+func (s *Session) PairingPIN() string {
+	return s.srv.PairingPIN()
+}
+
+func (s *Session) Address() string {
+	return s.addr
+}
+
+func (s *Session) Clients() []meshnet.ClientInfo {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]meshnet.ClientInfo, 0)
+	for _, d := range s.devices {
+		out = append(out, meshnet.ClientInfo{
+			ID:   d.info.ID,
+			Name: d.info.Name,
+		})
+	}
+	return out
+}
+
+func (s *Session) Disconnect(clientID string) error {
+	return s.srv.DisconnectClient(clientID)
+}
+
+// BridgeADB lets local adb reach a port on the device.
+// It listens on a local port and turns each connection into an "adb:<devicePort>" stream to the device
+// The bridge closes when the device disconnects or the session stops.
+func (s *Session) BridgeADB(clientID string, devicePort int) (localAddr string, err error) {
+	if devicePort < 1 || devicePort > 65535 {
+		return "", fmt.Errorf("invalid device port %d", devicePort)
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", fmt.Errorf("adb bridge: %w", err)
+	}
+
+	s.mu.Lock()
+	d := s.devices[clientID]
+	if d == nil {
+		s.mu.Unlock()
+		ln.Close()
+		return "", fmt.Errorf("device %s is not connected", clientID)
+	}
+	d.bridges = append(d.bridges, ln)
+	s.mu.Unlock()
+
+	go s.serveBridge(ln, clientID, fmt.Sprintf("adb:%d", devicePort))
+	return ln.Addr().String(), nil
+}
+
+func (s *Session) SetADBAddr(clientID, addr string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.devices[clientID]
+	if d == nil {
+		return
+	}
+	d.adbAddr = addr
+}
+
+func (s *Session) ADBAddr(clientID string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.devices[clientID]
+	if d == nil {
+		return ""
+	}
+
+	return d.adbAddr
+}
+
+func (s *Session) SetForwarding(clientID string, on bool) error {
+	if on {
+		s.mu.Lock()
+		blocked := s.capture != nil && s.capture.clientID != clientID
+		s.mu.Unlock()
+		if blocked {
+			return ErrCapturing
+		}
+	}
+	if err := s.srv.SetForwarding(clientID, on); err != nil {
+		return err
+	}
+
+	data := []byte("off")
+	if on {
+		data = []byte("on")
+	}
+	return s.srv.Send(clientID, meshnet.Message{Topic: "forward", Data: data})
+}
+
+func (s *Session) Forwarding(clientID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.devices[clientID]
+	if d == nil {
+		return false
+	}
+
+	return d.forwarding
+}
+
+func (s *Session) ClientName(clientID string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.devices[clientID]
+	if d == nil {
+		return "unknown"
+	}
+
+	return d.info.Name
+}
+
+// Returns the device's acquisition folder, creating if none exists
+func (s *Session) AcquisitionDir(clientID string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.devices[clientID]
+	if d == nil {
+		return "", meshnet.ErrUnknownClient
+	}
+
+	if d.acquisitionDir == "" {
+		dir, err := s.newAcquisitionDir()
+		if err != nil {
+			return "", err
+		}
+		d.acquisitionDir = dir
+		d.collected = false
+	}
+	return d.acquisitionDir, nil
+}
+
+// Returns the folder for a new adbcollect run.
+// First collection shares its folder with any existing pcap, repeated collection gets a new directory
+func (s *Session) CollectionDir(clientID string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d := s.devices[clientID]
+	if d == nil {
+		return "", meshnet.ErrUnknownClient
+	}
+
+	if d.acquisitionDir == "" || d.collected {
+		dir, err := s.newAcquisitionDir()
+		if err != nil {
+			return "", err
+		}
+		d.acquisitionDir = dir
+	}
+	d.collected = true
+	return d.acquisitionDir, nil
+}
+
+func (s *Session) newAcquisitionDir() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	dir := filepath.Join(wd, uuid.New().String())
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		return "", err
+	}
+
+	return dir, nil
+}
+
+func (s *Session) serveBridge(ln net.Listener, clientId, target string) {
+	for {
+		local, err := ln.Accept()
+		if err != nil {
+			return
+		}
+
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), streamOpenTimeout)
+			stream, err := s.srv.RequestStream(ctx, clientId, target)
+			cancel()
+			if err != nil {
+				fmt.Fprintf(s.out, "adb bridge: %v\n", err)
+				local.Close()
+				return
+			}
+			tailcat.ProxyConns(local, stream)
+		}()
+	}
+}
+
+func sanitizeName(name string) string {
+	name = strings.TrimSpace(strings.Map(func(r rune) rune {
+		if r == utf8.RuneError || !unicode.IsPrint(r) {
+			return -1
+		}
+		return r
+	}, name))
+	if name == "" {
+		return "unnamed device"
+	}
+	return name
+}
+
+func (s *Session) connected(c meshnet.ClientInfo) {
+	c.Name = sanitizeName(c.Name)
+	s.mu.Lock()
+	s.devices[c.ID] = &device{info: c}
+	s.mu.Unlock()
+	fmt.Fprintf(s.out, "device connected: %s\n", c.Name)
+}
+
+func (s *Session) disconnected(c meshnet.ClientInfo, err error) {
+	c.Name = sanitizeName(c.Name) // MESHnet passes the raw name again here
+	s.mu.Lock()
+	d := s.devices[c.ID]
+	delete(s.devices, c.ID)
+	s.mu.Unlock()
+	if d != nil {
+		for _, ln := range d.bridges {
+			ln.Close()
+		}
+	}
+
+	if err != nil {
+		fmt.Fprintf(s.out, "device disconnected: %s (%v)\n", c.Name, err)
+	} else {
+		fmt.Fprintf(s.out, "device disconnected: %s\n", c.Name)
+	}
+
+	s.mu.Lock()
+	ours := s.capture != nil && s.capture.clientID == c.ID
+	s.mu.Unlock()
+	if ours {
+		if path, _, err := s.StopCapture(); err == nil {
+			fmt.Fprintf(s.out, "capture stopped, device disconnected: %s\n", path)
+		}
+	}
+}
+
+func (s *Session) message(clientID string, m meshnet.Message) {
+	switch m.Topic {
+	case "forward":
+		s.handleForwardMsg(clientID, m)
+	default:
+		name := s.ClientName(clientID)
+		fmt.Fprintf(s.out, "%s sent an unexpected message (topic %q)\n", name, m.Topic)
+	}
+}
+
+func (s *Session) handleForwardMsg(clientID string, m meshnet.Message) {
+	on := string(m.Data) == "on"
+
+	s.mu.Lock()
+	d := s.devices[clientID]
+	if d == nil {
+		s.mu.Unlock()
+		return
+	}
+
+	d.forwarding = on
+	name := d.info.Name
+	s.mu.Unlock()
+
+	fmt.Fprintf(s.out, "%s: forwarding %v\n", name, on)
+}
