@@ -1,6 +1,6 @@
 module github.com/BARGHEST-ngo/MESH
 
-go 1.27.1
+go 1.27.4
 
 require (
 	github.com/a8m/envsubst v1.4.3 // indirect
