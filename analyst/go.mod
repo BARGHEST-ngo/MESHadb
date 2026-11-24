@@ -3,7 +3,7 @@ module github.com/BARGHEST-ngo/MESH/analyst
 go 1.27.4
 
 require (
-	github.com/BARGHEST-ngo/MESHnet v0.2.1-alpha
+	github.com/BARGHEST-ngo/MESHnet v0.2.2-alpha
 	github.com/BARGHEST-ngo/androidqf_mesh v0.4.3
 	github.com/google/uuid v1.6.0
 	github.com/peterbourgon/ff/v3 v3.4.0
