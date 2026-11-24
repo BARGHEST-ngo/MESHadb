@@ -188,7 +188,7 @@ fun MeshButton(
         MeshButtonVariant.Primary -> Triple(cs.accent, Color.White, Color.Transparent)
         MeshButtonVariant.Secondary -> Triple(cs.meshCardHi, cs.meshText, Color.Transparent)
         MeshButtonVariant.Ghost -> Triple(Color.Transparent, cs.meshText2, cs.meshBorder)
-        MeshButtonVariant.Danger -> Triple(cs.meshRedDim, cs.meshRed, cs.meshRed)
+        MeshButtonVariant.Danger -> Triple(cs.meshRedDim, cs.meshRed, Color.Transparent)
     }
     var m = modifier
         .then(if (full) Modifier.fillMaxWidth() else Modifier)

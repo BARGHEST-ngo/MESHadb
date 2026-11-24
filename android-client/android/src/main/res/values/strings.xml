@@ -415,6 +415,11 @@
     <string name="mesh_adb_on_sub">Your phone is ready to connect</string>
     <string name="mesh_adb_off_title">Set up wireless debugging</string>
     <string name="mesh_adb_off_sub">Required so the authority node can connect over Wi-Fi</string>
+    <string name="mesh_adb_session_off_title">Wireless debugging is off</string>
+    <string name="mesh_adb_session_on_sub">The authority node can reach your phone with ADB</string>
+    <string name="mesh_adb_session_off_sub">The authority node can\'t use ADB until you turn it on</string>
+    <string name="mesh_adb_session_open">Open wireless debugging settings</string>
+    <string name="mesh_adb_session_share_note">In Wireless debugging, tap \"Pair device with pairing code\", then share the pairing code, the pairing port and the connection port (shown under \"IP address &amp; Port\") with the authority node.</string>
 
     <!-- End-session confirm -->
     <string name="mesh_end_confirm_title">End the secure session?</string>

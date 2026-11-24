@@ -20,11 +20,14 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
 import android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
+import android.database.ContentObserver
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.provider.Settings
 import android.util.Base64
@@ -743,9 +746,23 @@ class MainActivity : ComponentActivity() {
             false
         }
 
+    // Keeps the card live while the app is in front, e.g. when the authority node turns
+    // wireless debugging off remotely.
+    private val adbWifiObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            adbWifiEnabled = isWirelessDebuggingOn()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        contentResolver.unregisterContentObserver(adbWifiObserver)
+    }
+
     override fun onResume() {
         super.onResume()
         adbWifiEnabled = isWirelessDebuggingOn()
+        contentResolver.registerContentObserver(Settings.Global.getUriFor("adb_wifi_enabled"), false, adbWifiObserver)
         val restrictionsManager =
             this.getSystemService(Context.RESTRICTIONS_SERVICE) as RestrictionsManager
         lifecycleScope.launch(Dispatchers.IO) {

@@ -51,7 +51,7 @@ import com.barghest.mesh.R
 private data class AdbStep(val n: Int, val titleRes: Int, val bodyRes: Int? = null)
 
 /** Opens Developer options (Wireless debugging), falling back to the top-level Settings app. */
-private fun openDeveloperSettings(context: Context) {
+internal fun openDeveloperSettings(context: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
         Toast.makeText(context, context.getString(R.string.mesh_adb_toast_need_r), Toast.LENGTH_LONG).show()
         return
