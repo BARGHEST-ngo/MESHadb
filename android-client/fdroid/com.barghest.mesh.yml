@@ -132,7 +132,7 @@ Builds:
     ndk: r23c
 
   - versionName: 1.0.0-beta
-    versionCode: 365
+    versionCode: 366
     commit: v1.0.0-beta
     subdir: android-client/android
     sudo:
@@ -160,4 +160,4 @@ AllowedAPKSigningKeys: 57ee4b4302bf4f6d5269588d6b4cf8160294c1500dba8c567ec0dfa96
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 CurrentVersion: 1.0.0-beta
-CurrentVersionCode: 365
+CurrentVersionCode: 366
