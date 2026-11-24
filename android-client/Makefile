@@ -20,8 +20,8 @@ RELEASE_AAB := mesh-release.aab
 
 # The MESHnet library downloaded from a MESHnet release
 # Keep MESHNET_VERSION in sync with the analyst's go.mod
-MESHNET_VERSION := v0.2.2-alpha
-MESHNET_SHA256 := d5537ae0451b4cd686882b83c3f6286aac91cab2025df6002f944196211cae41
+MESHNET_VERSION := v0.2.3-alpha
+MESHNET_SHA256 := 9c775ecb2092f3145c239b01602d98548f619e82e8dab71b632e3aba9273f378
 MESHNET_AAR := android/libs/meshnet.aar
 
 # Android SDK & Tools settings.
