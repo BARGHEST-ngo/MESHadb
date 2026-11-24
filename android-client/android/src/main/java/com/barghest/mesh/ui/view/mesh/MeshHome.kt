@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -229,6 +230,7 @@ fun MeshHomeScreen(
             } else {
                 // Hidden until a real identity is available; MESHnet does not supply one yet.
                 if (analyst.name.isNotBlank()) AnalystCard(analyst)
+                SessionAdbCard(adbReady)
                 MeshButton(stringResource(R.string.mesh_end_cta), actions.onEnd, full = true, height = 56.dp, icon = "power", variant = MeshButtonVariant.Danger)
             }
         }
@@ -271,5 +273,35 @@ private fun AdbCard(ready: Boolean, onOpen: () -> Unit) {
             iconTint = if (ready) cs.meshGreen else cs.meshAmber,
             iconBg = null,
         )
+    }
+}
+
+/** In-session wireless-debugging status, with a direct link to the system toggle. */
+@Composable
+private fun SessionAdbCard(ready: Boolean) {
+    val cs = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    MeshCard(pad = 14.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            MeshRow(
+                icon = if (ready) "check" else "wifi",
+                title = if (ready) stringResource(R.string.mesh_adb_on_title) else stringResource(R.string.mesh_adb_session_off_title),
+                sub = if (ready) stringResource(R.string.mesh_adb_session_on_sub) else stringResource(R.string.mesh_adb_session_off_sub),
+                iconTint = if (ready) cs.meshGreen else cs.meshAmber,
+                iconBg = null,
+                trailing = {},
+            )
+            Text(
+                stringResource(R.string.mesh_adb_session_share_note),
+                color = cs.meshText2, fontSize = 12.5.sp, lineHeight = 18.sp,
+            )
+            MeshButton(
+                stringResource(R.string.mesh_adb_session_open),
+                { openDeveloperSettings(context) },
+                full = true,
+                height = 46.dp,
+                variant = MeshButtonVariant.Secondary,
+            )
+        }
     }
 }
