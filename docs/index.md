@@ -6,10 +6,6 @@ hide:
 
 # [ MESHadb ]
 
-!!! warning
-
-    MESHadb is in public beta and has not yet had an independent security audit. Features and commands may change. Please report issues on [GitHub](https://github.com/BARGHEST-ngo/MESHadb/issues).
-
 MESHadb gives you ADB access to an Android device anywhere in the world, without port forwarding, accounts or a server to run. The phone runs a small app, your computer runs the `meshcli` command-line client, and the two join an end-to-end encrypted, peer-to-peer tunnel using an address and a one-time PIN.
 
 It is built on [MESHnet](https://github.com/BARGHEST-ngo/MESHnet), BARGHEST's library for peer-to-peer WireGuard connections, and is designed primarily for consensual remote forensics of spyware and surveillance.
