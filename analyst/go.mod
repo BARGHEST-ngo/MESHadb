@@ -4,7 +4,7 @@ go 1.27.4
 
 require (
 	github.com/BARGHEST-ngo/MESHnet v0.2.3-alpha
-	github.com/BARGHEST-ngo/androidqf_mesh v0.4.3
+	github.com/BARGHEST-ngo/androidqf_mesh v0.5.0
 	github.com/google/uuid v1.6.0
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e

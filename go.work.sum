@@ -185,10 +185,10 @@ github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c/go.mod h1:xomTg6
 github.com/AzureAD/microsoft-authentication-extensions-for-go/cache v0.1.1/go.mod h1:tCcJZ0uHAmvjsVYzEFivsRTN00oz5BEsRgQHu5JZ9WE=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0/go.mod h1:HKpQxkWaGLJ+D/5H8QRpyQXA1eKjxkFlOMwck5+33Jk=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.7.2/go.mod h1:HKpQxkWaGLJ+D/5H8QRpyQXA1eKjxkFlOMwck5+33Jk=
-github.com/BARGHEST-ngo/MESHnet v0.2.3-alpha h1:W3FAaoGczsIzBakHWPXltwE/ioLOQRwSGmglmWGK4xo=
-github.com/BARGHEST-ngo/MESHnet v0.2.3-alpha/go.mod h1:7PtpVzq7R+pwZZbsxYWZfbF4ZPRym9+WDlqlEO9K+WM=
 github.com/BARGHEST-ngo/androidqf_mesh v0.3.0 h1:UHavTkLJ4Bed8sxe/n1rHIPqS53wWGK4nG57P9Ztt3M=
 github.com/BARGHEST-ngo/androidqf_mesh v0.3.0/go.mod h1:z4lxoDF0bdjKCjBfrVbnMf1LIfQpwRuhCNmB+9VI1Kg=
+github.com/BARGHEST-ngo/androidqf_mesh v0.5.0 h1:hT71jpY2cacn1MEy78Guq3BNphH9bNDlX0lXwuDT4E8=
+github.com/BARGHEST-ngo/androidqf_mesh v0.5.0/go.mod h1:z4lxoDF0bdjKCjBfrVbnMf1LIfQpwRuhCNmB+9VI1Kg=
 github.com/BARGHEST-ngo/mesh-tailscale v1.94.2-0.20260512151315-5e37e12167e6 h1:xYtiTSCZwf/uiC7CMYlXlL8+wlcvLUGuWZvFVFKOruA=
 github.com/BARGHEST-ngo/mesh-tailscale v1.94.2-0.20260512151315-5e37e12167e6/go.mod h1:67EBC0/fZ1XdIbsylGIsnp1QsrsYXSRMyI60BMnNfsM=
 github.com/BARGHEST-ngo/mesh-tailscale v1.95.0-pre.0.20260602113745-edfc235e37f0 h1:XeTbbLmSkAbVZc63nrJgSxWxTmAGzJyJ3Km3/xYwL+U=
