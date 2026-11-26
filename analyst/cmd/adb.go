@@ -44,7 +44,7 @@ func runAdb(ctx context.Context, args []string, s *session.Session, in *Input) e
 	if addr == "" {
 		return errors.New("device not connected over ADB, run adbpair")
 	}
-	if err := initADB(); err != nil {
+	if err := initADB(ctx); err != nil {
 		return err
 	}
 
