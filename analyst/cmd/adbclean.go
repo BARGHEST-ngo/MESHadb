@@ -41,13 +41,13 @@ func runcleanCmd(ctx context.Context, args []string, s *session.Session, in *Inp
 	if addr == "" {
 		return errors.New("device not connected over ADB, run adbpair")
 	}
-	if err := initADB(); err != nil {
+	if err := initADB(ctx); err != nil {
 		return err
 	}
 	adb.Client.Serial = addr
 
 	fmt.Printf("Resetting battery stats history\n")
-	out, err := adb.Client.Shell("dumpsys", "batterystats", "--reset")
+	out, err := adb.Client.Shell(ctx, "dumpsys", "batterystats", "--reset")
 	if err != nil {
 		fmt.Printf("failed to reset batterystats (continuing): %v\n", err)
 	} else {
@@ -55,7 +55,7 @@ func runcleanCmd(ctx context.Context, args []string, s *session.Session, in *Inp
 	}
 
 	fmt.Printf("Clearing process stats\n")
-	out, err = adb.Client.Shell("dumpsys", "procstats", "--clear")
+	out, err = adb.Client.Shell(ctx, "dumpsys", "procstats", "--clear")
 	if err != nil {
 		fmt.Printf("failed to clear procstats (continuing): %v\n", err)
 	} else {
@@ -63,7 +63,7 @@ func runcleanCmd(ctx context.Context, args []string, s *session.Session, in *Inp
 	}
 
 	fmt.Printf("Clearing statsd puller cache\n")
-	out, err = adb.Client.Shell("cmd", "stats", "clear-puller-cache")
+	out, err = adb.Client.Shell(ctx, "cmd", "stats", "clear-puller-cache")
 	if err != nil {
 		fmt.Printf("failed to clear statsd puller cache (continuing): %v\n", err)
 	} else {
@@ -71,7 +71,7 @@ func runcleanCmd(ctx context.Context, args []string, s *session.Session, in *Inp
 	}
 
 	fmt.Printf("Clearing logcat ring buffers\n")
-	out, err = adb.Client.Shell("logcat", "-b", "all", "-c")
+	out, err = adb.Client.Shell(ctx, "logcat", "-b", "all", "-c")
 	if err != nil {
 		return fmt.Errorf("failed to run `adb shell logcat -b all -c`: %v", err)
 	}

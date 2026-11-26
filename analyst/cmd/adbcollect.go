@@ -104,7 +104,7 @@ func runcollectCmd(ctx context.Context, args []string, s *session.Session, in *I
 	if addr == "" {
 		return errors.New("device not connected over ADB, run adbpair")
 	}
-	if err := initADB(); err != nil {
+	if err := initADB(ctx); err != nil {
 		return err
 	}
 
@@ -133,7 +133,7 @@ func collect(ctx context.Context, addr string, opts collectOptions) error {
 
 	for attempt := 1; ; attempt++ {
 		var err error
-		if _, err = adb.Client.GetState(); err == nil {
+		if _, err = adb.Client.GetState(ctx); err == nil {
 			break
 		}
 		if attempt == 3 {
@@ -158,7 +158,7 @@ func collect(ctx context.Context, addr string, opts collectOptions) error {
 		outputPath = filepath.Join(workingDirectory, uuid.New().String())
 	}
 
-	acq, err := acquisition.New(outputPath)
+	acq, err := acquisition.New(ctx, outputPath)
 	if err != nil {
 		return fmt.Errorf("initialise acquisition: %w", err)
 	}
@@ -166,8 +166,12 @@ func collect(ctx context.Context, addr string, opts collectOptions) error {
 	// Start acquisitions
 	log.Info(fmt.Sprintf("Started new acquisition in %s", acq.StoragePath))
 
+	var cancelErr error
 	mods := modules.List()
 	for _, mod := range mods {
+		if cancelErr = ctx.Err(); cancelErr != nil {
+			break
+		}
 		if opts.module != "" && opts.module != mod.Name() {
 			continue
 		}
@@ -181,10 +185,29 @@ func collect(ctx context.Context, addr string, opts collectOptions) error {
 			continue
 		}
 
-		err = mod.Run(acq, opts.fast)
+		err = mod.Run(ctx, acq, opts.fast)
+		if cancelErr = ctx.Err(); cancelErr != nil {
+			break
+		}
+		// ctx is not cancelled when Ctrl+C was pressed at a prompt
+		if errors.Is(err, context.Canceled) {
+			cancelErr = err
+			break
+		}
 		if err != nil {
 			log.Infof("ERROR: failed to run module %s: %v", mod.Name(), err)
 		}
+	}
+
+	if cancelErr != nil {
+		// Still close the archive and clean the device, but don't hash or package partial data
+		savedTo := acq.StoragePath
+		if acq.StreamingMode && acq.EncryptedWriter != nil {
+			savedTo = acq.EncryptedWriter.GetOutputPath() // Complete removes StoragePath
+		}
+		acq.Complete()
+		log.Warningf("Acquisition stopped, partial data left in %s", savedTo)
+		return cancelErr
 	}
 
 	if acq.StreamingMode {
