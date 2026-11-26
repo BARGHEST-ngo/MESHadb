@@ -155,9 +155,33 @@ Builds:
       - cp $$MESHnet$$/build/meshnet.aar libs/meshnet.aar
     ndk: r28c
 
+  - versionName: 1.0.3-beta
+    versionCode: 367
+    commit: v1.0.3-beta
+    subdir: android-client/android
+    sudo:
+      - curl -sSfL -o /tmp/go.tar.gz https://go.dev/dl/go1.27.4.linux-amd64.tar.gz
+      - echo "7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840  /tmp/go.tar.gz"
+        | sha256sum -c -
+      - tar -C /opt -xzf /tmp/go.tar.gz
+    gradle:
+      - yes
+    srclibs:
+      - MESHnet@v0.2.3-alpha
+    prebuild:
+      - echo -e "\norg.gradle.jvmargs=-Xmx4096m" >> gradle.properties
+      - sdkmanager 'platforms;android-36' 'platform-tools' 'build-tools;36.0.0'
+      - sed -i -e 's/getVersionProperty("VERSION_LONG")/"$$VERSION$$"/' build.gradle
+    build:
+      - export PATH=/opt/go/bin:$PATH GOTOOLCHAIN=local
+      - ANDROID_NDK_HOME=$$NDK$$ $$MESHnet$$/scripts/build-aar.sh
+      - mkdir -p libs
+      - cp $$MESHnet$$/build/meshnet.aar libs/meshnet.aar
+    ndk: r28c
+
 AllowedAPKSigningKeys: 57ee4b4302bf4f6d5269588d6b4cf8160294c1500dba8c567ec0dfa96d298497
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.0-beta
-CurrentVersionCode: 366
+CurrentVersion: 1.0.3-beta
+CurrentVersionCode: 367
