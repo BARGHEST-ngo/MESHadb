@@ -37,17 +37,17 @@ func runadbdisable(ctx context.Context, args []string, s *session.Session, in *I
 	if addr == "" {
 		return errors.New("device not connected over ADB, run adbpair")
 	}
-	if err := initADB(); err != nil {
+	if err := initADB(ctx); err != nil {
 		return err
 	}
 	adb.Client.Serial = addr
 
 	fmt.Printf("Turning off Developer options on %s...\n", dev.Name)
-	if _, err := adb.Client.Shell("settings", "put", "global", "development_settings_enabled", "0"); err != nil {
+	if _, err := adb.Client.Shell(ctx, "settings", "put", "global", "development_settings_enabled", "0"); err != nil {
 		return fmt.Errorf("failed to disable developer options: %v", err)
 	}
 
-	if _, err := adb.Client.Shell("settings", "put", "global", "adb_wifi_enabled", "0"); err != nil {
+	if _, err := adb.Client.Shell(ctx, "settings", "put", "global", "adb_wifi_enabled", "0"); err != nil {
 		return fmt.Errorf("failed to turn off wireless debugging: %v", err)
 	}
 
@@ -62,9 +62,9 @@ func runadbdisable(ctx context.Context, args []string, s *session.Session, in *I
 	return nil
 }
 
-func triggerDeveloperModeCheck() {
+func triggerDeveloperModeCheck(ctx context.Context) {
 	checkADBClient()
-	adb.Client.Shell("am", "start", "-a", "android.settings.APPLICATION_DEVELOPMENT_SETTINGS")
+	adb.Client.Shell(ctx, "am", "start", "-a", "android.settings.APPLICATION_DEVELOPMENT_SETTINGS")
 	time.Sleep(1 * time.Second)
 }
 
@@ -82,7 +82,7 @@ func validateDisable(ctx context.Context, addr string) error {
 		case <-time.After(retryDelay):
 		}
 
-		devices, err := adb.Client.Devices()
+		devices, err := adb.Client.Devices(ctx)
 		if err != nil {
 			return fmt.Errorf("unable to get devices: %w", err)
 		}
@@ -92,7 +92,7 @@ func validateDisable(ctx context.Context, addr string) error {
 			return nil
 		}
 
-		state, err := adb.Client.GetState()
+		state, err := adb.Client.GetState(ctx)
 
 		if err != nil || state == "offline" {
 			fmt.Println("ADB is disabled.")
@@ -100,7 +100,7 @@ func validateDisable(ctx context.Context, addr string) error {
 		}
 
 		if attempt == 1 {
-			triggerDeveloperModeCheck()
+			triggerDeveloperModeCheck(ctx)
 		}
 
 		fmt.Printf("Still reachable, retrying (attempt %d/%d)...\n", attempt, maxRetries)

@@ -69,7 +69,7 @@ func runAdbPair(ctx context.Context, args []string, s *session.Session, in *Inpu
 		return err
 	}
 
-	if err := initADB(); err != nil {
+	if err := initADB(ctx); err != nil {
 		return err
 	}
 
@@ -77,7 +77,7 @@ func runAdbPair(ctx context.Context, args []string, s *session.Session, in *Inpu
 	if err != nil {
 		return err
 	}
-	if err := pair(pairAddr, code); err != nil {
+	if err := pair(ctx, pairAddr, code); err != nil {
 		return err
 	}
 
@@ -89,10 +89,10 @@ func runAdbPair(ctx context.Context, args []string, s *session.Session, in *Inpu
 	if err != nil {
 		return err
 	}
-	if err := connect(debugAddr); err != nil {
+	if err := connect(ctx, debugAddr); err != nil {
 		return err
 	}
-	if err := validateConnect(debugAddr); err != nil {
+	if err := validateConnect(ctx, debugAddr); err != nil {
 		return err
 	}
 
@@ -123,8 +123,8 @@ func chooseDevice(ctx context.Context, s *session.Session, in *Input) (meshnet.C
 	return devices[i], nil
 }
 
-func initADB() error {
-	adbClient, err := adb.New()
+func initADB(ctx context.Context) error {
+	adbClient, err := adb.New(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to initialise ADB: %w", err)
 	}
@@ -132,8 +132,8 @@ func initADB() error {
 	return nil
 }
 
-func pair(addr, code string) error {
-	output, err := adb.Client.Exec("pair", addr, code)
+func pair(ctx context.Context, addr, code string) error {
+	output, err := adb.Client.Exec(ctx, "pair", addr, code)
 	if err != nil {
 		return fmt.Errorf("ADB pair failed: %w\nOutput: %s", err, string(output))
 	}
@@ -141,18 +141,18 @@ func pair(addr, code string) error {
 	return nil
 }
 
-func connect(addr string) error {
+func connect(ctx context.Context, addr string) error {
 	fmt.Println("Connecting to device...")
-	output, err := adb.Client.Exec("connect", addr)
+	output, err := adb.Client.Exec(ctx, "connect", addr)
 	if err != nil {
 		return fmt.Errorf("ADB connect failed: %w\nOutput: %s", err, string(output))
 	}
 	return nil
 }
 
-func validateConnect(addr string) error {
+func validateConnect(ctx context.Context, addr string) error {
 	fmt.Println("Validating ADB session...")
-	devices, err := adb.Client.Devices()
+	devices, err := adb.Client.Devices(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get devices: %w", err)
 	}
