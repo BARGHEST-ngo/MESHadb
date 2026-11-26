@@ -90,6 +90,7 @@ Then run `disconnect` in the CLI, or `task down` to stop everything.
 | --- | --- |
 | `pin` | Create a one-time PIN so a device can join |
 | `adbpair` | Pair and connect to a device's wireless debugging |
+| `adb <args>` | Run any adb command against the paired device, e.g. `adb shell` |
 | `status` | Show the session and its connected devices |
 | `forward on\|off` | Send a device's internet traffic through your machine |
 | `capture start\|stop` | Record a device's forwarded traffic to a pcap file |
