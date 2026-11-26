@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/BARGHEST-ngo/MESH/analyst/session"
 	"github.com/BARGHEST-ngo/androidqf_mesh/adb"
@@ -23,8 +24,11 @@ func AdbCmd(s *session.Session, in *Input) *ffcli.Command {
 The device is selected for you, so do not pass -s.
 
   adb shell              interactive shell, leave it with 'exit' or Ctrl-D
-  adb shell pm list packages
-  adb logcat             stop it with Ctrl-C`,
+  adb shell top          runs with a terminal, so 'q' and Ctrl-C work as on the device
+  adb logcat             stop it with Ctrl-C
+
+If a shell command stops responding, press Enter then type ~. to detach from it.
+Pass your own shell flag (e.g. 'adb shell -T <command>') to run without a terminal.`,
 		Exec: func(ctx context.Context, args []string) error {
 			return runAdb(ctx, args, s, in)
 		},
@@ -46,6 +50,10 @@ func runAdb(ctx context.Context, args []string, s *session.Session, in *Input) e
 	}
 	if err := initADB(ctx); err != nil {
 		return err
+	}
+
+	if len(args) > 1 && args[0] == "shell" && !strings.HasPrefix(args[1], "-") {
+		args = append([]string{"shell", "-t"}, args[1:]...)
 	}
 
 	c := exec.Command(adb.Client.ExePath, append([]string{"-s", addr}, args...)...)
