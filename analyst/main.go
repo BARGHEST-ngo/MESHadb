@@ -86,6 +86,7 @@ func commands(s *session.Session, in *cmd.Input) *ffcli.Command {
 		Subcommands: []*ffcli.Command{
 			cmd.PinCmd(s),
 			cmd.AdbPairCmd(s, in),
+			cmd.AdbCmd(s, in),
 			cmd.AdbcollectCmd(s, in),
 			cmd.AdbdisableCmd(s, in),
 			cmd.AdbcleanCmd(s, in),
